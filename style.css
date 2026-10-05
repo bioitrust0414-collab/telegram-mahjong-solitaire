@@ -1,288 +1,190 @@
-/* global styles */
-
+/* ===== Mobile-first 基礎 ===== */
 * {
-    box-sizing: border-box;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
 }
 
 :root {
-    --font-color: #ddd;
-    --background-color: rgb(10, 8, 30);
-    --tile-bottom-right-color: #eec;
-    --tile-top-left-color: #eef;
-    --tile-hover-color: #ee7;
-    --tile-alert-color: #ff0;
-    --tile-border-color: #555;
-    --tile-back-color: #888;
-    --link-color: orange;
-    --button-color: rgb(80, 29, 161);
-    --button-hover-color: rgb(113, 29, 161);
-    --base-width: 1000px;
-    --base-height: 700px;
+  --bg: #0f0f1a;
+  --card-bg: #1a1a2e;
+  --text: #e8e8e8;
+  --accent: #4f46e5;
+  --accent-hover: #6366f1;
+  --success: #22c55e;
+  --danger: #ef4444;
+  --tile-w: 42px;
+  --tile-h: 56px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-body {
-    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-    font-weight: 300;
-    font-size: 18px;
-    background-color: var(--background-color);
-    color: var(--font-color);
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans TC", sans-serif;
 }
 
-strong {
-    font-weight: 600;
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  height: 100dvh;
+  padding-top: var(--safe-top);
+  padding-bottom: var(--safe-bottom);
 }
 
-/* wrapper */
-
-#wrapper {
-    transform-origin: top;
-    width: var(--base-width);
+/* ===== Header ===== */
+#header {
+  flex-shrink: 0;
+  padding: 10px 16px 8px;
+  background: rgba(26, 26, 46, 0.95);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 20;
 }
 
-/* header */
-
-header {
-    text-align: center;
-    padding: 20px 0px;
-    font-size: 28px;
-    letter-spacing: 0.5px;
-}
-
-/* main */
-
-main {
-    position: relative;
-}
-
-/* footer */
-
-footer {
-    padding-top: 15px;
+#user-info {
+  font-size: 15px;
+  font-weight: 600;
 }
 
 #statusText {
-    float: left;
+  font-size: 13px;
+  opacity: 0.85;
+  max-width: 60%;
+  text-align: right;
 }
 
-#controls {
-    float: right;
+/* ===== 遊戲區 ===== */
+#game-wrapper {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  position: relative;
 }
-
-/* buttons */
-
-button {
-    border: none;
-    outline: none;
-    font-family: inherit;
-    font-size: inherit;
-    font-weight: inherit;
-    color: var(--font-color);
-    background-color: var(--button-color);
-    padding: 5px 15px;
-    margin-left: 10px;
-    transition: background-color 100ms linear;
-}
-
-button:hover {
-    cursor: pointer;
-    background-color: var(--button-hover-color);
-}
-
-/* infotext */
-
-#infoText {
-    height: 100%;
-    display: none;
-    position: absolute;
-    z-index: 1;
-    padding: 0px 150px;
-    text-align: justify;
-    font-size: 20px;
-}
-
-#infoText a {
-    color: var(--link-color);
-    text-decoration: none;
-}
-
-#infoText a:hover {
-    color: var(--tile-alert-color);
-}
-
-#infoText img {
-    width: 52px;
-    border-radius: 5px;
-    background-image: linear-gradient(
-        to left top,
-        var(--tile-bottom-right-color),
-        var(--tile-top-left-color)
-    );
-    transition: transform 150ms ease;
-    border: 2px solid var(--background-color);
-    margin: 0px 5px;
-}
-
-#infoText img:hover {
-    transform: scale(1.2);
-}
-
-/* game */
 
 #game {
-    height: var(--base-height);
-    background: url("./img/background-small.jpg") no-repeat center;
-    position: relative;
-    border-radius: 5px;
-    opacity: 0;
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  aspect-ratio: 1.15 / 1;
+  background: linear-gradient(145deg, #1e1e3f 0%, #12122a 100%);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  overflow: hidden;
 }
 
-/* tile */
-
+/* ===== 牌 ===== */
 .tile {
-    position: absolute;
+  position: absolute;
+  transition: transform 0.15s ease;
 }
 
 .tileFront {
-    position: absolute;
-    background-image: linear-gradient(
-        to left top,
-        var(--tile-bottom-right-color),
-        var(--tile-top-left-color)
-    );
-    border: 1px solid var(--tile-border-color);
+  position: absolute;
+  width: var(--tile-w);
+  height: var(--tile-h);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: #1a1a2e;
+  border: 1.5px solid rgba(0,0,0,0.15);
+  box-shadow: 2px 2px 0 rgba(0,0,0,0.2);
+  cursor: pointer;
+  user-select: none;
 }
 
-.tileFront:hover {
-    cursor: pointer;
-    background-image: linear-gradient(
-        to left top,
-        var(--tile-hover-color),
-        var(--tile-hover-color)
-    );
-}
-
-.selectedTile {
-    background-image: linear-gradient(
-        to left top,
-        var(--tile-hover-color),
-        var(--tile-hover-color)
-    );
-}
-
-.alertTile {
-    background-image: linear-gradient(
-        to left top,
-        var(--tile-alert-color),
-        var(--tile-alert-color)
-    );
+.tileFront:active {
+  transform: scale(0.95);
 }
 
 .tileBack {
-    position: absolute;
-    background-color: var(--tile-back-color);
-    border: 1px solid var(--tile-border-color);
+  position: absolute;
+  width: calc(var(--tile-w) + 5px);
+  height: calc(var(--tile-h) + 5px);
+  top: -5px;
+  left: -5px;
+  border-radius: 8px 12px 8px 12px;
+  background: #64748b;
+  z-index: -1;
 }
 
-/* media queries */
-
-@media (max-width: 1010px) {
-    .tile {
-        transform: translateX(-65px);
-    }
-    :root {
-        --base-width: 865px;
-    }
-    #infoText {
-        padding: 0px 80px;
-    }
+/* 選中與提示 */
+.selectedTile {
+  outline: 3px solid #fbbf24 !important;
+  outline-offset: 1px;
+  z-index: 50 !important;
 }
 
-@media (max-width: 875px) {
-    #wrapper {
-        transform: scale(0.95);
-    }
-    header {
-        padding: 30px 0px;
-    }
-    footer {
-        padding: 20px 0px;
-        font-size: 30px;
-    }
+.alertTile {
+  outline: 3px solid #22c55e !important;
+  outline-offset: 1px;
 }
 
-@media (max-width: 830px) {
-    #wrapper {
-        transform: scale(0.9);
-    }
+/* 不同花色顏色 */
+.tile-dots     { background: linear-gradient(135deg, #fef3c7, #fde68a); }
+.tile-bamboo   { background: linear-gradient(135deg, #d1fae5, #a7f3d0); }
+.tile-character{ background: linear-gradient(135deg, #fee2e2, #fecaca); }
+.tile-wind     { background: linear-gradient(135deg, #e0e7ff, #c7d2fe); }
+.tile-dragon   { background: linear-gradient(135deg, #fce7f3, #fbcfe8); }
+.tile-flower   { background: linear-gradient(135deg, #fef9c3, #fde047); }
+.tile-season   { background: linear-gradient(135deg, #cffafe, #a5f3fc); }
+
+/* ===== Footer 按鈕 ===== */
+#footer {
+  flex-shrink: 0;
+  padding: 12px 16px;
+  display: flex;
+  gap: 12px;
+  background: rgba(26, 26, 46, 0.95);
+  border-top: 1px solid rgba(255,255,255,0.06);
 }
 
-@media (max-width: 780px) {
-    #wrapper {
-        transform: scale(0.85);
-    }
+.btn {
+  flex: 1;
+  height: 48px;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  color: white;
+  background: #334155;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
 }
 
-@media (max-width: 745px) {
-    #wrapper {
-        transform: scale(0.8);
-    }
+.btn:active {
+  transform: scale(0.97);
 }
 
-@media (max-width: 700px) {
-    #wrapper {
-        transform: scale(0.75);
-    }
+.btn.primary {
+  background: var(--accent);
 }
 
-@media (max-width: 660px) {
-    #wrapper {
-        transform: scale(0.7);
-    }
+.btn.primary:active {
+  background: var(--accent-hover);
 }
 
-@media (max-width: 620px) {
-    #wrapper {
-        transform: scale(0.65);
-    }
-}
-
-@media (max-width: 570px) {
-    #wrapper {
-        transform: scale(0.6);
-    }
-}
-
-@media (max-width: 520px) {
-    #wrapper {
-        transform: scale(0.55);
-    }
-}
-
-@media (max-width: 480px) {
-    #wrapper {
-        transform: scale(0.5);
-    }
-}
-
-@media (max-width: 435px) {
-    #wrapper {
-        transform: scale(0.45);
-    }
-}
-
-@media (max-width: 390px) {
-    #wrapper {
-        transform: scale(0.4);
-    }
-}
-
-@media (max-width: 350px) {
-    #wrapper {
-        transform: scale(0.35);
-    }
+/* 小螢幕微調 */
+@media (max-width: 380px) {
+  :root {
+    --tile-w: 36px;
+    --tile-h: 48px;
+  }
+  .tileFront {
+    font-size: 12px;
+  }
 }

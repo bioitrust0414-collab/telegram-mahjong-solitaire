@@ -1,48 +1,55 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-Hant">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mahjong Solitaire - Telegram Mini App</title>
-    <link rel="stylesheet" href="style.css">
-    
-    <!-- jQuery (required by original code) -->
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    
-    <!-- Telegram WebApp (準備用) -->
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    
-    <!-- Adsgram (準備用) -->
-    <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>麻將接龍</title>
+  
+  <!-- Telegram WebApp -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  
+  <!-- jQuery -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="wrapper">
-        <header>Mahjong Solitaire</header>
-        <main>
-            <section id="infoText" style="display:none;">
-                <!-- original info text can be restored later -->
-            </section>
-            <section id="game"></section>
-        </main>
-        <footer>
-            <span id="statusText">Loading...</span>
-            <span id="controls">
-                <button id="hintButton">Hint</button>
-                <button id="restartButton">Restart</button>
-            </span>
-        </footer>
-    </div>
+  <div id="app">
+    <!-- 頂部狀態列 -->
+    <header id="header">
+      <div id="user-info">麻將接龍</div>
+      <div id="statusText">載入中...</div>
+    </header>
 
-    <script type="module" src="./main.js"></script>
-    
-    <script>
-        // Telegram 初始化（之後會更完整）
-        if (window.Telegram && window.Telegram.WebApp) {
-            const tg = window.Telegram.WebApp;
-            tg.ready();
-            tg.expand();
-            console.log('Telegram WebApp ready');
-        }
-    </script>
+    <!-- 遊戲區 -->
+    <main id="game-wrapper">
+      <div id="game"></div>
+    </main>
+
+    <!-- 底部操作列 -->
+    <footer id="footer">
+      <button id="hintButton" class="btn">提示</button>
+      <button id="restartButton" class="btn primary">重新開始</button>
+    </footer>
+  </div>
+
+  <script type="module" src="./main.js"></script>
+  
+  <script>
+    // Telegram 初始化
+    if (window.Telegram?.WebApp) {
+      const tg = window.Telegram.WebApp;
+      tg.ready();
+      tg.expand();
+      // 可選：跟隨主題
+      document.documentElement.style.setProperty('--tg-bg', tg.themeParams.bg_color || '#1a1a2e');
+      document.documentElement.style.setProperty('--tg-text', tg.themeParams.text_color || '#ffffff');
+      
+      const user = tg.initDataUnsafe?.user;
+      if (user) {
+        document.getElementById('user-info').textContent = user.first_name || '玩家';
+      }
+    }
+  </script>
 </body>
 </html>
