@@ -1,13 +1,19 @@
 # Telegram Mahjong Solitaire (TMA MVP)
 
-快速驗證麻將接龍小遊戲 + Telegram Mini App + 激勵影片洗牌。
+基於 MIT 授權的開源麻將接龍，準備改造成 Telegram Mini App + 激勵影片洗牌。
+
+## 來源與授權
+- 核心遊戲邏輯來自：[ScriptRaccoon/mahjong-solitaire](https://github.com/ScriptRaccoon/mahjong-solitaire)（MIT License）
+- 本專案額外加入 Telegram WebApp 與 Adsgram 整合準備
+- 完整授權請見 `LICENSE` 檔案
 
 ## 目前狀態
-- Web 小遊戲骨架已建立
-- Telegram WebApp 整合準備完成
-- Adsgram 激勵廣告預留位置
+- [x] 導入 MIT 核心程式碼
+- [ ] 複製牌面圖片（img 資料夾）
+- [ ] 加入 Telegram WebApp
+- [ ] 卡關時觸發 Adsgram 激勵廣告 → 洗牌
 
-## 快速開始（本地開發）
+## 如何讓遊戲跑起來（重要）
 
 1. Clone 本專案
 ```bash
@@ -15,46 +21,27 @@ git clone https://github.com/bioitrust0414-collab/telegram-mahjong-solitaire.git
 cd telegram-mahjong-solitaire
 ```
 
-2. 用任何靜態伺服器開啟（推薦）
+2. **必須手動複製圖片**（因為圖片是二進位檔，無法直接推送）：
+   - 到原專案下載：https://github.com/ScriptRaccoon/mahjong-solitaire
+   - 把整個 `img/` 資料夾複製到本專案根目錄
+
+3. 本地啟動
 ```bash
 npx serve .
-# 或 python -m http.server 8080
+# 或任何靜態伺服器
 ```
 
-3. 在瀏覽器打開後，用 Telegram WebApp 測試環境，或直接在桌面瀏覽器測試基本功能。
+4. 瀏覽器打開即可玩原本的麻將接龍。
 
-## 開發路線圖（3-5 天原型）
+## 下一步（我會繼續幫你做）
+1. 修改 `index.html` 加入 Telegram.WebApp
+2. 在無解時（`There are no moves left`）觸發廣告彈窗
+3. 廣告成功後呼叫原本的 `restartGame()` 當作洗牌
+4. 部署與 Bot 設定
 
-### Day 1: 基礎骨架
-- [x] 建立 Repo + 基本 HTML 結構
-- [ ] 接入完整麻將接龍邏輯（建議從 [ffalt/mah](https://github.com/ffalt/mah) 移植核心或直接 fork 後修改）
-- [ ] Telegram.WebApp.ready() + expand()
+## 技術說明
+- 純 HTML + JS + CSS（使用 jQuery）
+- 無框架，容易修改
+- 原本就有無解判定與重新開始功能，非常適合接廣告
 
-### Day 2: 核心遊戲
-- [ ] 無解判定 (hasValidMoves)
-- [ ] 洗牌功能 (shuffle)
-- [ ] 基本 UI 與觸控支援
-
-### Day 3: 商業化卡點
-- [ ] Adsgram 接入
-- [ ] 卡關時彈出「觀看廣告免費洗牌」
-- [ ] onReward 回調執行 shuffle
-
-### Day 4-5: 優化與上線
-- [ ] Safe Area 處理
-- [ ] 用戶 ID 綁定進度
-- [ ] 部署到 Vercel / Cloudflare Pages
-- [ ] BotFather 設定 Mini App
-
-## 技術選擇
-- **遊戲引擎**：先用純 HTML5 / Canvas 或 Phaser 3（可後續切換）
-- **廣告**：Adsgram（專為 Telegram Mini Apps 設計）
-- **授權**：本專案使用 MIT，可安心商業化
-
-## 重要提醒
-- 不要直接使用 AdMob 原生 SDK（TMA 不支援）
-- 廣告完成建議後期加上 Server-to-Server 驗證
-
----
-
-由 Grok 協助建立初始骨架。有問題直接在 Issues 提出。
+有問題直接跟我說，我繼續幫你整合 Telegram + 廣告部分。
