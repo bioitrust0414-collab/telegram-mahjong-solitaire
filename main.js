@@ -7,7 +7,12 @@ import {
   randEl,
   sleep,
 } from "./utils.js";
-import { isCovered } from "./coordinates.js";
+import {
+  isCovered,
+  isSingleLayer,
+  canSelectSingleLayer,
+  canSelectMultiLayer,
+} from "./coordinates.js";
 import { hasPath } from "./pathfinder.js";
 import { LEVELS } from "./levels.js";
 
@@ -16,6 +21,7 @@ let currentCoords = [];
 let hintCoord = null;
 let currentLevelId = 1;
 let COORDINATES = [];
+let singleLayerMode = true; // 當前關卡是否為單層模式
 
 // ===== 進度 =====
 function getUnlockedLevel() {
@@ -51,8 +57,15 @@ async function startLevel(id) {
   const level = LEVELS.find((l) => l.id === id);
   COORDINATES = [...level.coords];
   currentCoords = [...COORDINATES];
+
+  // 自動判斷單層 / 多層
+  singleLayerMode = isSingleLayer(COORDINATES);
+
   $("#game-wrapper").html(`<div id="game"></div>`);
-  $("#header .level-title").text(`第 ${id} 關・${level.name}`);
+  $("#header .level-title").text(
+    `第 ${id} 關・${level.name}${singleLayerMode ? "（單層）" : "（立體）"}`
+  );
+
   selectedCoord = null;
   hintCoord = null;
   createTiles({ clickFunction: clickTileAt, coords: COORDINATES });
@@ -90,10 +103,16 @@ function showConnectionLine(tileA, tileB) {
   setTimeout(() => svg.remove(), 400);
 }
 
-// ===== 核心點擊邏輯（新規則）=====
+// ===== 核心點擊邏輯（分開單層 / 多層）=====
+function canSelect(coord) {
+  if (singleLayerMode) {
+    return canSelectSingleLayer(coord, currentCoords);
+  }
+  return canSelectMultiLayer(coord, currentCoords);
+}
+
 function clickTileAt(coord) {
-  // 規則2：被壓住的牌不能選
-  if (isCovered(coord, currentCoords)) return;
+  if (!canSelect(coord)) return;
 
   if (selectedCoord) {
     if (coord.toString() === selectedCoord.toString()) {
@@ -104,25 +123,36 @@ function clickTileAt(coord) {
     const tile = tileAt(coord);
     const selectedTile = tileAt(selectedCoord);
 
-    // 規則1：同花色同數字
-    if (tile.attr("type") === selectedTile.attr("type")) {
-      // 規則3 & 4：最多兩次轉折的路徑
-      if (hasPath(selectedCoord, coord, currentCoords)) {
-        executeMove(tile, selectedTile, coord, selectedCoord);
-        return;
-      } else {
-        // 路徑不通，改選新的牌
-        unselectTileAt(selectedCoord);
-        selectTileAt(coord);
-        return;
-      }
-    } else {
-      // 不同牌，改選
+    // 必須同類型
+    if (tile.attr("type") !== selectedTile.attr("type")) {
       unselectTileAt(selectedCoord);
       selectTileAt(coord);
       return;
     }
+
+    // 根據模式決定是否可消除
+    let canMatch = false;
+
+    if (singleLayerMode) {
+      // 單層：兩張都「開放」即可消除（不需要路徑）
+      canMatch =
+        canSelectSingleLayer(selectedCoord, currentCoords) &&
+        canSelectSingleLayer(coord, currentCoords);
+    } else {
+      // 多層：必須有 ≤ 2 轉折的路徑
+      canMatch = hasPath(selectedCoord, coord, currentCoords);
+    }
+
+    if (canMatch) {
+      executeMove(tile, selectedTile, coord, selectedCoord);
+    } else {
+      // 不能消，改選新牌
+      unselectTileAt(selectedCoord);
+      selectTileAt(coord);
+    }
+    return;
   }
+
   selectTileAt(coord);
 }
 
@@ -170,15 +200,23 @@ async function checkMovePossible(message) {
     for (let j = i + 1; j < currentCoords.length; j++) {
       const p = currentCoords[i];
       const q = currentCoords[j];
-      if (
-        p.toString() !== q.toString() &&
-        tileAt(p).attr("type") === tileAt(q).attr("type") &&
-        !isCovered(p, currentCoords) &&
-        !isCovered(q, currentCoords) &&
-        hasPath(p, q, currentCoords)
-      ) {
-        moves.push([p, q]);
+
+      if (p.toString() === q.toString()) continue;
+      if (tileAt(p).attr("type") !== tileAt(q).attr("type")) continue;
+
+      let valid = false;
+      if (singleLayerMode) {
+        valid =
+          canSelectSingleLayer(p, currentCoords) &&
+          canSelectSingleLayer(q, currentCoords);
+      } else {
+        valid =
+          !isCovered(p, currentCoords) &&
+          !isCovered(q, currentCoords) &&
+          hasPath(p, q, currentCoords);
       }
+
+      if (valid) moves.push([p, q]);
     }
   }
 
