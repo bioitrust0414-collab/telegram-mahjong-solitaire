@@ -1,47 +1,117 @@
-# Telegram Mahjong Solitaire (TMA MVP)
+# 麻將接龍 (Telegram Mini App)
 
-基於 MIT 授權的開源麻將接龍，準備改造成 Telegram Mini App + 激勵影片洗牌。
+一個專為 Telegram Mini App 設計的麻將接龍小遊戲，支援關卡挑戰、路徑消除與激勵廣告洗牌（規劃中）。
 
-## 來源與授權
-- 核心遊戲邏輯來自：[ScriptRaccoon/mahjong-solitaire](https://github.com/ScriptRaccoon/mahjong-solitaire)（MIT License）
-- 本專案額外加入 Telegram WebApp 與 Adsgram 整合準備
-- 完整授權請見 `LICENSE` 檔案
+**Repo：** https://github.com/bioitrust0414-collab/telegram-mahjong-solitaire
 
-## 目前狀態
-- [x] 導入 MIT 核心程式碼
-- [ ] 複製牌面圖片（img 資料夾）
-- [ ] 加入 Telegram WebApp
-- [ ] 卡關時觸發 Adsgram 激勵廣告 → 洗牌
+---
 
-## 如何讓遊戲跑起來（重要）
+## 遊戲規則（目前版本）
 
-1. Clone 本專案
+本遊戲採用以下消除原則：
+
+1. **同花色同數字** 才能消除  
+   （例如兩張「3筒」可配對，不同數字或不同花色不可）
+
+2. **不能壓牌**  
+   正上方有其他牌的，無法被選取
+
+3. **路徑限制（最多兩次轉折）**  
+   - 同平面：兩張牌之間必須能走出一條路徑，轉折次數 ≤ 2  
+   - 立體空間：同樣最多允許兩次轉折  
+   - 支援 0 轉折（直線）、1 轉折、2 轉折
+
+4. 成功配對後會顯示**金色連線動畫**，接著牌張消失
+
+> 這是結合「經典麻將接龍的層級概念」與「連連看的路徑限制」的混合規則。
+
+---
+
+## 目前功能
+
+| 功能 | 狀態 | 說明 |
+|------|------|------|
+| 10 關由簡至難 | ✅ | 從 4×4 小棋盤逐步增加到高密度多層 |
+| 顏色 + 數字牌面 | ✅ | 不需外部圖片即可遊玩 |
+| 手機友善介面 | ✅ | 支援 Safe Area、大按鈕、自適應縮放 |
+| 路徑消除（≤2 轉折） | ✅ | 含連線動畫 |
+| 關卡解鎖進度 | ✅ | 使用 localStorage 記錄 |
+| 提示功能 | ✅ | 高亮可消除的牌 |
+| 重新開始 | ✅ | 重新發牌 |
+| Telegram WebApp 準備 | ✅ | 已接入 ready / expand |
+| 激勵廣告洗牌 | ⏳ | 規劃中（Adsgram） |
+| 進度雲端同步 | ⏳ | 尚未實作 |
+
+---
+
+## 關卡一覽
+
+| 關卡 | 名稱 | 難度 | 約略規模 |
+|------|------|------|----------|
+| 1 | 4×4 入門 | 入門 | 16 張 |
+| 2 | 初學 | 簡單 | ~24 張 |
+| 3 | 基礎 | 簡單 | ~36 張 + 二層 |
+| 4 | 進階 I | 普通 | ~48 張 |
+| 5 | 進階 II | 普通 | ~64 張 |
+| 6 | 挑戰 I | 困難 | ~80 張 + 三層 |
+| 7 | 挑戰 II | 困難 | ~100 張 |
+| 8 | 高手 | 很難 | ~120 張 + 四層 |
+| 9 | 大師 | 很難 | ~136 張 |
+| 10 | 終極挑戰 | 極難 | ~150+ 張 |
+
+過關後自動解鎖下一關。
+
+---
+
+## 如何本地運行
+
 ```bash
 git clone https://github.com/bioitrust0414-collab/telegram-mahjong-solitaire.git
 cd telegram-mahjong-solitaire
-```
-
-2. **必須手動複製圖片**（因為圖片是二進位檔，無法直接推送）：
-   - 到原專案下載：https://github.com/ScriptRaccoon/mahjong-solitaire
-   - 把整個 `img/` 資料夾複製到本專案根目錄
-
-3. 本地啟動
-```bash
 npx serve .
-# 或任何靜態伺服器
 ```
 
-4. 瀏覽器打開即可玩原本的麻將接龍。
+瀏覽器開啟後即可遊玩（建議用手機模式或實際手機測試）。
 
-## 下一步（我會繼續幫你做）
-1. 修改 `index.html` 加入 Telegram.WebApp
-2. 在無解時（`There are no moves left`）觸發廣告彈窗
-3. 廣告成功後呼叫原本的 `restartGame()` 當作洗牌
-4. 部署與 Bot 設定
+---
 
 ## 技術說明
-- 純 HTML + JS + CSS（使用 jQuery）
-- 無框架，容易修改
-- 原本就有無解判定與重新開始功能，非常適合接廣告
 
-有問題直接跟我說，我繼續幫你整合 Telegram + 廣告部分。
+- 純前端：HTML + JavaScript + CSS
+- 使用 jQuery 處理 DOM
+- 牌面以顏色 + 文字呈現（無需圖片資源）
+- 路徑演算法支援 0 / 1 / 2 轉折
+- 進度儲存於 `localStorage`
+
+### 主要檔案
+
+```
+index.html        # 入口頁面
+main.js           # 遊戲主邏輯、關卡控制
+pathfinder.js     # 最多兩次轉折的路徑判斷
+coordinates.js    # 是否被壓牌判斷
+levels.js         # 10 關布局定義
+createTiles.js    # 產生棋盤與牌面
+images.js         # 牌種定義與成對發牌
+style.css         # 手機優先樣式
+```
+
+---
+
+## 授權
+
+- 核心邏輯參考並修改自 [ScriptRaccoon/mahjong-solitaire](https://github.com/ScriptRaccoon/mahjong-solitaire)（MIT License）
+- 本專案後續修改與 Telegram 適配部分同樣以 MIT 授權
+
+---
+
+## 後續規劃
+
+1. 接入 Adsgram 激勵影片（無路可走時可看廣告洗牌）
+2. 優化路徑演算法與連線動畫（顯示真實轉折路徑）
+3. Telegram 用戶進度同步
+4. 音效與更精緻的過關表現
+
+---
+
+有問題或想繼續開發，直接提 Issue 或繼續對話即可。
