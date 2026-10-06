@@ -60,6 +60,86 @@ html, body {
   text-align: right;
 }
 
+/* 主區域：側邊 + 遊戲 */
+#main-area {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* 側邊結構面板 */
+#structure-panel {
+  width: 72px;
+  flex-shrink: 0;
+  background: rgba(26, 26, 46, 0.9);
+  border-right: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 6px;
+  gap: 8px;
+}
+
+.panel-title {
+  font-size: 11px;
+  opacity: 0.6;
+  letter-spacing: 1px;
+}
+
+#layer-diagram {
+  flex: 1;
+  display: flex;
+  flex-direction: column-reverse; /* 底層在下 */
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  min-height: 80px;
+}
+
+.layer-block {
+  width: 48px;
+  height: 14px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #6366f1, #818cf8);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  position: relative;
+  transition: all 0.2s;
+}
+
+.layer-block.single {
+  background: linear-gradient(90deg, #22c55e, #4ade80);
+  height: 20px;
+}
+
+.layer-block::after {
+  content: attr(data-z);
+  position: absolute;
+  right: -18px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+#layer-label {
+  font-size: 11px;
+  text-align: center;
+  opacity: 0.85;
+  line-height: 1.3;
+  padding: 0 2px;
+}
+
+#layer-label .mode {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+#layer-label .mode.single { color: #4ade80; }
+#layer-label .mode.multi  { color: #818cf8; }
+
 /* 遊戲區 */
 #game-wrapper {
   flex: 1;
@@ -69,12 +149,13 @@ html, body {
   justify-content: center;
   padding: 8px;
   position: relative;
+  min-width: 0;
 }
 
 #game {
   position: relative;
   width: 100%;
-  max-width: 440px;
+  max-width: 400px;
   aspect-ratio: 1.1 / 1;
   background: linear-gradient(145deg, #1e1e3f 0%, #12122a 100%);
   border-radius: 16px;
@@ -95,29 +176,13 @@ html, body {
 
 /* 連線動畫 */
 @keyframes drawLine {
-  0% {
-    stroke-dashoffset: 1000;
-    opacity: 0;
-  }
-  30% {
-    opacity: 1;
-  }
-  100% {
-    stroke-dashoffset: 0;
-    opacity: 1;
-  }
-}
-
-.connection-line line {
-  stroke: #fbbf24;
-  filter: drop-shadow(0 0 6px #fbbf24);
+  0% { stroke-dashoffset: 1000; opacity: 0; }
+  30% { opacity: 1; }
+  100% { stroke-dashoffset: 0; opacity: 1; }
 }
 
 /* 牌 */
-.tile {
-  position: absolute;
-  transition: transform 0.15s ease;
-}
+.tile { position: absolute; transition: transform 0.15s ease; }
 
 .tileFront {
   position: absolute;
@@ -137,11 +202,8 @@ html, body {
   transition: transform 0.15s, outline 0.15s;
 }
 
-.tileFront:active {
-  transform: scale(0.95);
-}
+.tileFront:active { transform: scale(0.95); }
 
-/* 消除動畫 */
 .tile.removing .tileFront {
   animation: removeTile 0.28s forwards;
 }
@@ -174,7 +236,6 @@ html, body {
   outline-offset: 1px;
 }
 
-/* 花色顏色 */
 .tile-dots      { background: linear-gradient(135deg, #fef3c7, #fde68a); }
 .tile-bamboo    { background: linear-gradient(135deg, #d1fae5, #a7f3d0); }
 .tile-character { background: linear-gradient(135deg, #fee2e2, #fecaca); }
@@ -206,15 +267,10 @@ html, body {
   transition: background 0.15s, transform 0.1s;
 }
 
-.btn:active {
-  transform: scale(0.97);
-}
+.btn:active { transform: scale(0.97); }
+.btn.primary { background: var(--accent); }
 
-.btn.primary {
-  background: var(--accent);
-}
-
-/* 關卡選擇畫面 */
+/* 關卡選擇 */
 .level-select {
   width: 100%;
   max-width: 400px;
@@ -222,10 +278,7 @@ html, body {
   text-align: center;
 }
 
-.level-select h2 {
-  margin-bottom: 20px;
-  font-size: 22px;
-}
+.level-select h2 { margin-bottom: 20px; font-size: 22px; }
 
 .level-grid {
   display: grid;
@@ -249,41 +302,15 @@ html, body {
   border-color: var(--accent);
 }
 
-.level-btn.locked {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-.lv-num {
-  font-size: 13px;
-  opacity: 0.7;
-  margin-bottom: 4px;
-}
-
-.lv-name {
-  font-size: 18px;
-  font-weight: 700;
-  margin-bottom: 4px;
-}
-
-.lv-diff {
-  font-size: 12px;
-  opacity: 0.8;
-}
-
-.lock {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  font-size: 16px;
-}
+.level-btn.locked { opacity: 0.45; cursor: not-allowed; }
+.lv-num { font-size: 13px; opacity: 0.7; margin-bottom: 4px; }
+.lv-name { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+.lv-diff { font-size: 12px; opacity: 0.8; }
+.lock { position: absolute; top: 10px; right: 10px; font-size: 16px; }
 
 @media (max-width: 380px) {
-  :root {
-    --tile-w: 36px;
-    --tile-h: 48px;
-  }
-  .tileFront {
-    font-size: 12px;
-  }
+  :root { --tile-w: 36px; --tile-h: 48px; }
+  .tileFront { font-size: 12px; }
+  #structure-panel { width: 60px; }
+  .layer-block { width: 40px; }
 }

@@ -18,9 +18,18 @@
       <div id="statusText">載入中...</div>
     </header>
 
-    <main id="game-wrapper">
-      <!-- 關卡選擇或遊戲會動態渲染在這裡 -->
-    </main>
+    <div id="main-area">
+      <!-- 側邊立體結構示意圖 -->
+      <aside id="structure-panel">
+        <div class="panel-title">結構</div>
+        <div id="layer-diagram"></div>
+        <div id="layer-label">—</div>
+      </aside>
+
+      <main id="game-wrapper">
+        <!-- 關卡選擇或遊戲會動態渲染在這裡 -->
+      </main>
+    </div>
 
     <footer id="footer">
       <button id="levelSelectBtn" class="btn">關卡</button>
@@ -36,10 +45,6 @@
       const tg = window.Telegram.WebApp;
       tg.ready();
       tg.expand();
-      const user = tg.initDataUnsafe?.user;
-      if (user) {
-        // 可顯示用戶名
-      }
     }
   </script>
 </body>

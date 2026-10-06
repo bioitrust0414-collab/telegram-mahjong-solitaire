@@ -21,7 +21,7 @@ let currentCoords = [];
 let hintCoord = null;
 let currentLevelId = 1;
 let COORDINATES = [];
-let singleLayerMode = true; // 當前關卡是否為單層模式
+let singleLayerMode = true;
 
 // ===== 進度 =====
 function getUnlockedLevel() {
@@ -32,8 +32,57 @@ function unlockLevel(id) {
   if (id > current) localStorage.setItem("mahjong_unlocked", id);
 }
 
+// ===== 側邊結構圖 =====
+function updateStructurePanel(coords) {
+  const diagram = document.getElementById("layer-diagram");
+  const label = document.getElementById("layer-label");
+  if (!diagram || !label) return;
+
+  // 統計每一層有多少張牌
+  const layerCount = {};
+  let maxZ = 0;
+  coords.forEach(([, , z]) => {
+    const zz = Math.floor(z);
+    layerCount[zz] = (layerCount[zz] || 0) + 1;
+    if (zz > maxZ) maxZ = zz;
+  });
+
+  const isSingle = maxZ === 0;
+  diagram.innerHTML = "";
+
+  if (isSingle) {
+    // 單層：只顯示一塊綠色
+    const block = document.createElement("div");
+    block.className = "layer-block single";
+    block.dataset.z = "0";
+    diagram.appendChild(block);
+    label.innerHTML = `<span class="mode single">單層</span>平面`;
+  } else {
+    // 多層：由下往上堆疊
+    for (let z = 0; z <= maxZ; z++) {
+      const block = document.createElement("div");
+      block.className = "layer-block";
+      block.dataset.z = z;
+      // 層數越高，寬度稍微縮小，模擬立體感
+      const scale = 1 - z * 0.06;
+      block.style.width = 48 * scale + "px";
+      block.style.opacity = 1 - z * 0.08;
+      diagram.appendChild(block);
+    }
+    label.innerHTML = `<span class="mode multi">立體</span>${maxZ + 1} 層`;
+  }
+}
+
+function clearStructurePanel() {
+  const diagram = document.getElementById("layer-diagram");
+  const label = document.getElementById("layer-label");
+  if (diagram) diagram.innerHTML = "";
+  if (label) label.textContent = "—";
+}
+
 // ===== 關卡選擇 =====
 function showLevelSelect() {
+  clearStructurePanel();
   const unlocked = getUnlockedLevel();
   let html = `<div class="level-select"><h2>選擇關卡</h2><div class="level-grid">`;
   LEVELS.forEach((lv) => {
@@ -58,12 +107,14 @@ async function startLevel(id) {
   COORDINATES = [...level.coords];
   currentCoords = [...COORDINATES];
 
-  // 自動判斷單層 / 多層
   singleLayerMode = isSingleLayer(COORDINATES);
+
+  // 更新側邊結構圖
+  updateStructurePanel(COORDINATES);
 
   $("#game-wrapper").html(`<div id="game"></div>`);
   $("#header .level-title").text(
-    `第 ${id} 關・${level.name}${singleLayerMode ? "（單層）" : "（立體）"}`
+    `第 ${id} 關・${level.name}`
   );
 
   selectedCoord = null;
@@ -103,12 +154,11 @@ function showConnectionLine(tileA, tileB) {
   setTimeout(() => svg.remove(), 400);
 }
 
-// ===== 核心點擊邏輯（分開單層 / 多層）=====
+// ===== 核心邏輯 =====
 function canSelect(coord) {
-  if (singleLayerMode) {
-    return canSelectSingleLayer(coord, currentCoords);
-  }
-  return canSelectMultiLayer(coord, currentCoords);
+  return singleLayerMode
+    ? canSelectSingleLayer(coord, currentCoords)
+    : canSelectMultiLayer(coord, currentCoords);
 }
 
 function clickTileAt(coord) {
@@ -123,36 +173,29 @@ function clickTileAt(coord) {
     const tile = tileAt(coord);
     const selectedTile = tileAt(selectedCoord);
 
-    // 必須同類型
     if (tile.attr("type") !== selectedTile.attr("type")) {
       unselectTileAt(selectedCoord);
       selectTileAt(coord);
       return;
     }
 
-    // 根據模式決定是否可消除
     let canMatch = false;
-
     if (singleLayerMode) {
-      // 單層：兩張都「開放」即可消除（不需要路徑）
       canMatch =
         canSelectSingleLayer(selectedCoord, currentCoords) &&
         canSelectSingleLayer(coord, currentCoords);
     } else {
-      // 多層：必須有 ≤ 2 轉折的路徑
       canMatch = hasPath(selectedCoord, coord, currentCoords);
     }
 
     if (canMatch) {
       executeMove(tile, selectedTile, coord, selectedCoord);
     } else {
-      // 不能消，改選新牌
       unselectTileAt(selectedCoord);
       selectTileAt(coord);
     }
     return;
   }
-
   selectTileAt(coord);
 }
 
@@ -200,7 +243,6 @@ async function checkMovePossible(message) {
     for (let j = i + 1; j < currentCoords.length; j++) {
       const p = currentCoords[i];
       const q = currentCoords[j];
-
       if (p.toString() === q.toString()) continue;
       if (tileAt(p).attr("type") !== tileAt(q).attr("type")) continue;
 
@@ -215,27 +257,18 @@ async function checkMovePossible(message) {
           !isCovered(q, currentCoords) &&
           hasPath(p, q, currentCoords);
       }
-
       if (valid) moves.push([p, q]);
     }
   }
 
   updateStatus(moves);
-  if (moves.length > 0) {
-    hintCoord = randEl(randEl(moves));
-  } else {
-    hintCoord = null;
-  }
+  hintCoord = moves.length > 0 ? randEl(randEl(moves)) : null;
 }
 
 function updateStatus(moves) {
-  if (moves.length === 0) {
-    writeStatus("無路可走了！🚧");
-  } else if (moves.length === 1) {
-    writeStatus("只剩 1 步可走");
-  } else {
-    writeStatus(`還有 ${moves.length} 步可走`);
-  }
+  if (moves.length === 0) writeStatus("無路可走了！🚧");
+  else if (moves.length === 1) writeStatus("只剩 1 步可走");
+  else writeStatus(`還有 ${moves.length} 步可走`);
 }
 
 async function onLevelClear() {
@@ -247,9 +280,7 @@ async function onLevelClear() {
   if (nextId <= LEVELS.length) {
     if (confirm(`第 ${currentLevelId} 關完成！\n是否前往第 ${nextId} 關？`)) {
       startLevel(nextId);
-    } else {
-      showLevelSelect();
-    }
+    } else showLevelSelect();
   } else {
     alert("恭喜你通過所有關卡！");
     showLevelSelect();
@@ -271,8 +302,7 @@ $("#restartButton").on("click", async () => {
 
 $("#hintButton").on("click", () => {
   if (!hintCoord || $(".level-select").length) return;
-  const times = 5;
-  const delay = 160;
+  const times = 5, delay = 160;
   for (let i = 0; i < times; i++) {
     setTimeout(() => tileFrontAt(hintCoord).toggleClass("alertTile"), delay * i);
   }
