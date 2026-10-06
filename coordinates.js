@@ -1,31 +1,36 @@
 import { disjoint } from "./utils.js";
 
-// 這個檔案現在只負責「是否可點選」的判斷邏輯
-// 實際座標由 levels.js 提供
-
-function leftNeighbors(coord) {
-  const [x, y, z] = coord;
-  return [[x - 1, y, z]];
-}
-
-function rightNeighbors(coord) {
-  const [x, y, z] = coord;
-  return [[x + 1, y, z]];
-}
-
+/**
+ * 判斷一張牌是否可以點選（開放）
+ * 規則：
+ * 1. 正上方不能有牌（更高的 z）
+ * 2. 左邊或右邊至少有一邊是空的（同一層）
+ */
 export function isOpen(coord, currentCoords) {
-  if (disjoint([coord], currentCoords)) return false;
-
   const [x, y, z] = coord;
 
-  // 上方有牌就不可點
-  if (currentCoords.some(([a, b, c]) => a === x && b === y && c > z)) {
-    return false;
-  }
-
-  // 左右至少一邊是空的才可點
-  return (
-    disjoint(leftNeighbors(coord), currentCoords) ||
-    disjoint(rightNeighbors(coord), currentCoords)
+  // 1. 如果這張牌已經不在場上，直接 false
+  const stillExists = currentCoords.some(
+    ([a, b, c]) => a === x && b === y && c === z
   );
+  if (!stillExists) return false;
+
+  // 2. 正上方有牌 → 被壓住，不能點
+  const hasTileAbove = currentCoords.some(
+    ([a, b, c]) => a === x && b === y && c > z
+  );
+  if (hasTileAbove) return false;
+
+  // 3. 檢查左右是否有鄰接牌（同一層 z）
+  // 允許一點誤差（因為有些布局用了 0.5）
+  const hasLeft = currentCoords.some(([a, b, c]) => {
+    return c === z && b === y && a < x && a >= x - 1.1;
+  });
+
+  const hasRight = currentCoords.some(([a, b, c]) => {
+    return c === z && b === y && a > x && a <= x + 1.1;
+  });
+
+  // 左右至少一邊是空的，就可以點
+  return !hasLeft || !hasRight;
 }
