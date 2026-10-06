@@ -45,26 +45,9 @@ export function canSelectMultiLayer(coord, currentCoords) {
 }
 
 /**
- * 配對規則：不區分花色，只比數字
- * - 筒/索/萬：數字相同即可互消（3筒 = 3索 = 3萬）
- * - 風、龍、花、季：維持相同 type 才能消
+ * 配對規則：必須完全相同
+ * 3筒 只能與 3筒 消除，不能與 3索 / 3萬
  */
 export function isMatch(typeA, typeB) {
-  if (typeA === typeB) return true;
-
-  // 抽出數字（dots1 / bamboo1 / character1 → 1）
-  const numA = extractNumber(typeA);
-  const numB = extractNumber(typeB);
-
-  if (numA !== null && numB !== null && numA === numB) {
-    return true;
-  }
-  return false;
-}
-
-function extractNumber(type) {
-  // dots1, bamboo3, character9
-  const m = String(type).match(/^(dots|bamboo|character)(\d+)$/);
-  if (m) return m[2];
-  return null;
+  return typeA === typeB;
 }

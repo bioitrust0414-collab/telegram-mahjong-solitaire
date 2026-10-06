@@ -1,7 +1,7 @@
 import { TILE_WIDTH, TILE_HEIGHT, generateBalancedTiles } from "./images.js";
 import { shuffle } from "./utils.js";
 
-const TILE_DEPTH = 5;
+const TILE_DEPTH = 6; // 略增加深度感，配合半格錯位
 
 export function createTiles(options) {
   const coords = options.coords || [];
@@ -15,7 +15,6 @@ export function createTiles(options) {
   const containerW = gameEl.clientWidth;
   const containerH = gameEl.clientHeight;
 
-  // 計算布局的原始邊界
   let minX = Infinity, maxX = -Infinity;
   let minY = Infinity, maxY = -Infinity;
   let maxZ = 0;
@@ -28,11 +27,9 @@ export function createTiles(options) {
     if (z > maxZ) maxZ = z;
   });
 
-  // 原始布局寬高（含深度偏移）
-  const rawW = (maxX - minX + 1) * TILE_WIDTH + maxZ * TILE_DEPTH + 8;
-  const rawH = (maxY - minY + 1) * TILE_HEIGHT + maxZ * TILE_DEPTH + 8;
+  const rawW = (maxX - minX + 1) * TILE_WIDTH + maxZ * TILE_DEPTH + 12;
+  const rawH = (maxY - minY + 1) * TILE_HEIGHT + maxZ * TILE_DEPTH + 12;
 
-  // 縮放以適合容器，並留一點邊距
   const padding = 16;
   const scale = Math.min(
     (containerW - padding * 2) / rawW,
@@ -44,15 +41,13 @@ export function createTiles(options) {
   const th = TILE_HEIGHT * scale;
   const depth = TILE_DEPTH * scale;
 
-  // 縮放後的布局實際寬高
   const layoutW = (maxX - minX + 1) * tw + maxZ * depth;
   const layoutH = (maxY - minY + 1) * th + maxZ * depth;
 
-  // 置中偏移量
+  // 置中
   const offsetX = (containerW - layoutW) / 2 - minX * tw;
   const offsetY = (containerH - layoutH) / 2 - minY * th;
 
-  // 產生成對牌並打亂
   const tileData = generateBalancedTiles(coords.length);
   shuffle(tileData);
 
@@ -61,15 +56,17 @@ export function createTiles(options) {
     const [x, y, z] = coord;
     const data = tileData[i];
 
-    const left = x * tw + depth * z + offsetX;
-    const top  = y * th + depth * z + offsetY;
+    // 半格錯位已寫在座標裡（x+0.5 / y+0.5）
+    // 再加一點深度造成的視覺偏移
+    const left = x * tw + depth * z * 0.7 + offsetX;
+    const top  = y * th + depth * z * 0.7 + offsetY;
 
     const $tile = $("<div></div>")
       .addClass("tile")
       .css({
         left: left + "px",
         top: top + "px",
-        zIndex: Math.floor(z * 20 + y),
+        zIndex: Math.floor(z * 30 + y * 2 + x),
         width: tw + "px",
         height: th + "px",
       })
