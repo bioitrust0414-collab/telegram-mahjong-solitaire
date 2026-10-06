@@ -58,7 +58,7 @@ html, body {
   min-height: 0;
 }
 
-/* ===== 3D 結構面板 ===== */
+/* 3D 結構面板 */
 #structure-panel {
   width: 100px;
   flex-shrink: 0;
@@ -72,11 +72,7 @@ html, body {
   user-select: none;
 }
 
-.panel-title {
-  font-size: 11px;
-  opacity: 0.6;
-  letter-spacing: 1px;
-}
+.panel-title { font-size: 11px; opacity: 0.6; letter-spacing: 1px; }
 
 #scene-3d {
   width: 86px;
@@ -89,9 +85,7 @@ html, body {
   touch-action: none;
 }
 
-#scene-3d:active {
-  cursor: grabbing;
-}
+#scene-3d:active { cursor: grabbing; }
 
 #cube-world {
   width: 50px;
@@ -101,7 +95,6 @@ html, body {
   transition: transform 0.08s linear;
 }
 
-/* 每一層的 3D 板塊 */
 .floor-3d {
   position: absolute;
   left: 50%;
@@ -206,7 +199,9 @@ html, body {
   font-size: 14px;
   font-weight: 700;
   color: #1a1a2e;
-  border: 1.5px solid rgba(0,0,0,0.15);
+  /* 統一牌面顏色，不再依花色變色 */
+  background: linear-gradient(145deg, #f5f0e6, #e8e0d0);
+  border: 1.5px solid rgba(0,0,0,0.18);
   box-shadow: 2px 2px 0 rgba(0,0,0,0.25);
   cursor: pointer;
   user-select: none;
@@ -247,13 +242,7 @@ html, body {
   outline-offset: 1px;
 }
 
-.tile-dots      { background: linear-gradient(135deg, #fef3c7, #fde68a); }
-.tile-bamboo    { background: linear-gradient(135deg, #d1fae5, #a7f3d0); }
-.tile-character { background: linear-gradient(135deg, #fee2e2, #fecaca); }
-.tile-wind      { background: linear-gradient(135deg, #e0e7ff, #c7d2fe); }
-.tile-dragon    { background: linear-gradient(135deg, #fce7f3, #fbcfe8); }
-.tile-flower    { background: linear-gradient(135deg, #fef9c3, #fde047); }
-.tile-season    { background: linear-gradient(135deg, #cffafe, #a5f3fc); }
+/* 已取消花色專屬顏色，全部走統一 .tileFront 樣式 */
 
 /* Footer */
 #footer {
