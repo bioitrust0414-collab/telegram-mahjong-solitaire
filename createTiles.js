@@ -2,8 +2,6 @@ import { TILE_WIDTH, TILE_HEIGHT, generateBalancedTiles } from "./images.js";
 import { shuffle } from "./utils.js";
 
 const TILE_DEPTH = 5;
-const TOTAL_OFFSET_TOP = 12;
-const TOTAL_OFFSET_LEFT = 12;
 
 export function createTiles(options) {
   const coords = options.coords || [];
@@ -14,35 +12,57 @@ export function createTiles(options) {
   const gameEl = document.getElementById("game");
   if (!gameEl) return;
 
-  const maxW = gameEl.clientWidth - 20;
-  const maxH = gameEl.clientHeight - 20;
+  const containerW = gameEl.clientWidth;
+  const containerH = gameEl.clientHeight;
 
-  // 計算布局邊界
-  let maxX = 0, maxY = 0;
-  coords.forEach(([x, y]) => {
+  // 計算布局的原始邊界
+  let minX = Infinity, maxX = -Infinity;
+  let minY = Infinity, maxY = -Infinity;
+  let maxZ = 0;
+
+  coords.forEach(([x, y, z]) => {
+    if (x < minX) minX = x;
     if (x > maxX) maxX = x;
+    if (y < minY) minY = y;
     if (y > maxY) maxY = y;
+    if (z > maxZ) maxZ = z;
   });
 
-  const layoutW = (maxX + 2) * TILE_WIDTH;
-  const layoutH = (maxY + 2) * TILE_HEIGHT;
-  const scale = Math.min(maxW / layoutW, maxH / layoutH, 1.15);
+  // 原始布局寬高（含深度偏移）
+  const rawW = (maxX - minX + 1) * TILE_WIDTH + maxZ * TILE_DEPTH + 8;
+  const rawH = (maxY - minY + 1) * TILE_HEIGHT + maxZ * TILE_DEPTH + 8;
+
+  // 縮放以適合容器，並留一點邊距
+  const padding = 16;
+  const scale = Math.min(
+    (containerW - padding * 2) / rawW,
+    (containerH - padding * 2) / rawH,
+    1.2
+  );
 
   const tw = TILE_WIDTH * scale;
   const th = TILE_HEIGHT * scale;
   const depth = TILE_DEPTH * scale;
 
-  // ===== 關鍵修正：產生成對的牌 =====
+  // 縮放後的布局實際寬高
+  const layoutW = (maxX - minX + 1) * tw + maxZ * depth;
+  const layoutH = (maxY - minY + 1) * th + maxZ * depth;
+
+  // 置中偏移量
+  const offsetX = (containerW - layoutW) / 2 - minX * tw;
+  const offsetY = (containerH - layoutH) / 2 - minY * th;
+
+  // 產生成對牌並打亂
   const tileData = generateBalancedTiles(coords.length);
-  shuffle(tileData); // 打亂位置
+  shuffle(tileData);
 
   for (let i = 0; i < coords.length; i++) {
     const coord = coords[i];
     const [x, y, z] = coord;
     const data = tileData[i];
 
-    const left = x * tw + depth * z + TOTAL_OFFSET_LEFT;
-    const top  = y * th + depth * z + TOTAL_OFFSET_TOP;
+    const left = x * tw + depth * z + offsetX;
+    const top  = y * th + depth * z + offsetY;
 
     const $tile = $("<div></div>")
       .addClass("tile")
