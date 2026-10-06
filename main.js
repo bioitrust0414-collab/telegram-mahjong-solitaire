@@ -72,6 +72,56 @@ async function startLevel(id) {
   await checkMovePossible("開始遊戲");
 }
 
+// ===== 連線動畫 =====
+function showConnectionLine(tileA, tileB) {
+  const game = document.getElementById("game");
+  if (!game) return;
+
+  const rectA = tileA[0].getBoundingClientRect();
+  const rectB = tileB[0].getBoundingClientRect();
+  const gameRect = game.getBoundingClientRect();
+
+  // 計算兩張牌中心點（相對於 #game）
+  const x1 = rectA.left + rectA.width / 2 - gameRect.left;
+  const y1 = rectA.top + rectA.height / 2 - gameRect.top;
+  const x2 = rectB.left + rectB.width / 2 - gameRect.left;
+  const y2 = rectB.top + rectB.height / 2 - gameRect.top;
+
+  // 建立 SVG 連線
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("class", "connection-line");
+  svg.style.cssText = `
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 100;
+  `;
+
+  const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+  line.setAttribute("x1", x1);
+  line.setAttribute("y1", y1);
+  line.setAttribute("x2", x2);
+  line.setAttribute("y2", y2);
+  line.setAttribute("stroke", "#fbbf24");
+  line.setAttribute("stroke-width", "4");
+  line.setAttribute("stroke-linecap", "round");
+  line.setAttribute("filter", "drop-shadow(0 0 6px #fbbf24)");
+
+  // 動畫：從透明到實心再消失
+  line.style.strokeDasharray = "1000";
+  line.style.strokeDashoffset = "1000";
+  line.style.animation = "drawLine 0.35s ease forwards";
+
+  svg.appendChild(line);
+  game.appendChild(svg);
+
+  // 動畫結束後移除
+  setTimeout(() => {
+    svg.remove();
+  }, 400);
+}
+
 // ===== 遊戲邏輯 =====
 function clickTileAt(coord) {
   if (!isOpen(coord, currentCoords)) return;
@@ -96,21 +146,27 @@ function executeMove(tile, selectedTile, coord, coord2) {
   selectedCoord = null;
   hintCoord = null;
 
-  selectedTile.addClass("removing");
-  tile.addClass("removing");
+  // 先顯示連線
+  showConnectionLine(selectedTile, tile);
 
+  // 稍微延遲後再播放消除動畫
   setTimeout(() => {
-    selectedTile.hide();
-    tile.hide();
-    remove(coord, currentCoords);
-    remove(coord2, currentCoords);
+    selectedTile.addClass("removing");
+    tile.addClass("removing");
 
-    if (currentCoords.length === 0) {
-      onLevelClear();
-    } else {
-      checkMovePossible("計算中...");
-    }
-  }, 280);
+    setTimeout(() => {
+      selectedTile.hide();
+      tile.hide();
+      remove(coord, currentCoords);
+      remove(coord2, currentCoords);
+
+      if (currentCoords.length === 0) {
+        onLevelClear();
+      } else {
+        checkMovePossible("計算中...");
+      }
+    }, 280);
+  }, 180);
 }
 
 function selectTileAt(coord) {

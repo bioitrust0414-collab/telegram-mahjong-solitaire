@@ -93,6 +93,26 @@ html, body {
   100% { transform: scale(1); filter: brightness(1); }
 }
 
+/* 連線動畫 */
+@keyframes drawLine {
+  0% {
+    stroke-dashoffset: 1000;
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 1;
+  }
+}
+
+.connection-line line {
+  stroke: #fbbf24;
+  filter: drop-shadow(0 0 6px #fbbf24);
+}
+
 /* 牌 */
 .tile {
   position: absolute;
