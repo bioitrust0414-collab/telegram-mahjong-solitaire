@@ -1,7 +1,5 @@
-import { images } from "./images.js";
 import { createTiles } from "./createTiles.js";
 import {
-  shuffle,
   remove,
   tileAt,
   tileFrontAt,
@@ -64,19 +62,17 @@ async function startLevel(id) {
   COORDINATES = [...level.coords];
   currentCoords = [...COORDINATES];
 
-  // 恢復遊戲區結構
   $("#game-wrapper").html(`<div id="game"></div>`);
   $("#header .level-title").text(`第 ${id} 關・${level.name}`);
 
   selectedCoord = null;
   hintCoord = null;
 
-  shuffle(images);
   createTiles({ clickFunction: clickTileAt, coords: COORDINATES });
   await checkMovePossible("開始遊戲");
 }
 
-// ===== 原本的遊戲邏輯 =====
+// ===== 遊戲邏輯 =====
 function clickTileAt(coord) {
   if (!isOpen(coord, currentCoords)) return;
 
@@ -100,7 +96,6 @@ function executeMove(tile, selectedTile, coord, coord2) {
   selectedCoord = null;
   hintCoord = null;
 
-  // 加強消除動畫
   selectedTile.addClass("removing");
   tile.addClass("removing");
 
@@ -133,7 +128,7 @@ function unselectTileAt(coord) {
 
 async function checkMovePossible(message) {
   writeStatus(message);
-  await sleep(30);
+  await sleep(40);
 
   const moves = [];
   for (let i = 0; i < currentCoords.length; i++) {
@@ -162,7 +157,6 @@ async function checkMovePossible(message) {
 function updateStatus(moves) {
   if (moves.length === 0) {
     writeStatus("無路可走了！🚧");
-    // 之後接廣告
   } else if (moves.length === 1) {
     writeStatus("只剩 1 步可走");
   } else {
@@ -170,12 +164,11 @@ function updateStatus(moves) {
   }
 }
 
-// ===== 過關處理 =====
+// ===== 過關 =====
 async function onLevelClear() {
   writeStatus("恭喜過關！🎉");
   unlockLevel(currentLevelId + 1);
 
-  // 簡單過關動畫
   $("#game").addClass("level-clear");
   await sleep(800);
 
@@ -192,15 +185,14 @@ async function onLevelClear() {
   }
 }
 
-// ===== 按鈕事件 =====
+// ===== 按鈕 =====
 $("#restartButton").on("click", async () => {
-  if ($(".level-select").length) return; // 在選關畫面不動作
+  if ($(".level-select").length) return;
   $("#game").css("opacity", 0.3);
   await sleep(150);
   currentCoords = [...COORDINATES];
   selectedCoord = null;
   hintCoord = null;
-  shuffle(images);
   createTiles({ clickFunction: clickTileAt, coords: COORDINATES });
   await checkMovePossible("重新開始");
   $("#game").css("opacity", 1);
@@ -224,17 +216,15 @@ $("#levelSelectBtn").on("click", () => {
   showLevelSelect();
 });
 
-// 暴露
 window.restartGame = () => {
   currentCoords = [...COORDINATES];
   selectedCoord = null;
   hintCoord = null;
-  shuffle(images);
   createTiles({ clickFunction: clickTileAt, coords: COORDINATES });
   checkMovePossible("洗牌完成");
 };
 
-// ===== 初始化 =====
+// 初始化
 $(document).ready(() => {
   showLevelSelect();
 });
