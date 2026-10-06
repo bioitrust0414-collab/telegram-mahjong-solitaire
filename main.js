@@ -12,6 +12,7 @@ import {
   isSingleLayer,
   canSelectSingleLayer,
   canSelectMultiLayer,
+  isMatch,
 } from "./coordinates.js";
 import { hasPath } from "./pathfinder.js";
 import { LEVELS } from "./levels.js";
@@ -23,7 +24,7 @@ let currentLevelId = 1;
 let COORDINATES = [];
 let singleLayerMode = true;
 
-// ===== 3D 旋轉狀態 =====
+// ===== 3D 旋轉 =====
 let rotX = -28;
 let rotY = -35;
 let isDragging = false;
@@ -32,28 +33,19 @@ let lastY = 0;
 
 function applyRotation() {
   const world = document.getElementById("cube-world");
-  if (world) {
-    world.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg)`;
-  }
+  if (world) world.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg)`;
 }
 
 function init3DControls() {
   const scene = document.getElementById("scene-3d");
   if (!scene) return;
 
-  const start = (x, y) => {
-    isDragging = true;
-    lastX = x;
-    lastY = y;
-  };
+  const start = (x, y) => { isDragging = true; lastX = x; lastY = y; };
   const move = (x, y) => {
     if (!isDragging) return;
-    const dx = x - lastX;
-    const dy = y - lastY;
-    rotY += dx * 0.6;
-    rotX = Math.max(-80, Math.min(80, rotX - dy * 0.6));
-    lastX = x;
-    lastY = y;
+    rotY += (x - lastX) * 0.6;
+    rotX = Math.max(-80, Math.min(80, rotX - (y - lastY) * 0.6));
+    lastX = x; lastY = y;
     applyRotation();
   };
   const end = () => { isDragging = false; };
@@ -61,33 +53,25 @@ function init3DControls() {
   scene.addEventListener("mousedown", (e) => start(e.clientX, e.clientY));
   window.addEventListener("mousemove", (e) => move(e.clientX, e.clientY));
   window.addEventListener("mouseup", end);
-
   scene.addEventListener("touchstart", (e) => {
-    const t = e.touches[0];
-    start(t.clientX, t.clientY);
+    const t = e.touches[0]; start(t.clientX, t.clientY);
   }, { passive: true });
   scene.addEventListener("touchmove", (e) => {
-    const t = e.touches[0];
-    move(t.clientX, t.clientY);
+    const t = e.touches[0]; move(t.clientX, t.clientY);
   }, { passive: true });
   scene.addEventListener("touchend", end);
 }
 
-// ===== 更新 3D 結構預覽 =====
 function updateStructurePanel(coords) {
   const world = document.getElementById("cube-world");
   const label = document.getElementById("layer-label");
   if (!world || !label) return;
-
   world.innerHTML = "";
 
   let maxZ = 0;
-  coords.forEach(([, , z]) => {
-    if (z > maxZ) maxZ = Math.floor(z);
-  });
-
+  coords.forEach(([, , z]) => { if (z > maxZ) maxZ = Math.floor(z); });
   const isSingle = maxZ === 0;
-  const layerH = 12; // 每層在 3D 中的高度間距
+  const layerH = 12;
 
   if (isSingle) {
     const floor = document.createElement("div");
@@ -101,19 +85,14 @@ function updateStructurePanel(coords) {
       const floor = document.createElement("div");
       floor.className = "floor-3d";
       floor.textContent = z;
-      // 越高的層 translateZ 越大，形成堆疊
-      const tz = z * layerH;
       const scale = 1 - z * 0.04;
-      floor.style.transform = `translateZ(${tz}px) scale(${scale})`;
+      floor.style.transform = `translateZ(${z * layerH}px) scale(${scale})`;
       floor.style.opacity = 1 - z * 0.06;
       world.appendChild(floor);
     }
     label.innerHTML = `<span class="mode multi">立體</span>${maxZ + 1} 層`;
   }
-
-  // 重設角度並套用
-  rotX = -28;
-  rotY = -35;
+  rotX = -28; rotY = -35;
   applyRotation();
 }
 
@@ -160,12 +139,10 @@ async function startLevel(id) {
   COORDINATES = [...level.coords];
   currentCoords = [...COORDINATES];
   singleLayerMode = isSingleLayer(COORDINATES);
-
   updateStructurePanel(COORDINATES);
 
   $("#game-wrapper").html(`<div id="game"></div>`);
   $("#header .level-title").text(`第 ${id} 關・${level.name}`);
-
   selectedCoord = null;
   hintCoord = null;
   createTiles({ clickFunction: clickTileAt, coords: COORDINATES });
@@ -221,8 +198,11 @@ function clickTileAt(coord) {
 
     const tile = tileAt(coord);
     const selectedTile = tileAt(selectedCoord);
+    const typeA = selectedTile.attr("type");
+    const typeB = tile.attr("type");
 
-    if (tile.attr("type") !== selectedTile.attr("type")) {
+    // 新規則：不區分花色，只比數字
+    if (!isMatch(typeA, typeB)) {
       unselectTileAt(selectedCoord);
       selectTileAt(coord);
       return;
@@ -230,6 +210,7 @@ function clickTileAt(coord) {
 
     let canMatch = false;
     if (singleLayerMode) {
+      // 單層：兩邊都開放才能消
       canMatch =
         canSelectSingleLayer(selectedCoord, currentCoords) &&
         canSelectSingleLayer(coord, currentCoords);
@@ -290,7 +271,10 @@ async function checkMovePossible(message) {
       const p = currentCoords[i];
       const q = currentCoords[j];
       if (p.toString() === q.toString()) continue;
-      if (tileAt(p).attr("type") !== tileAt(q).attr("type")) continue;
+
+      const typeA = tileAt(p).attr("type");
+      const typeB = tileAt(q).attr("type");
+      if (!isMatch(typeA, typeB)) continue;
 
       let valid = false;
       if (singleLayerMode) {
