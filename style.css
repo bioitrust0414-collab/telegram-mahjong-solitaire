@@ -12,8 +12,6 @@
   --text: #e8e8e8;
   --accent: #4f46e5;
   --accent-hover: #6366f1;
-  --success: #22c55e;
-  --danger: #ef4444;
   --tile-w: 42px;
   --tile-h: 56px;
   --safe-top: env(safe-area-inset-top, 0px);
@@ -37,7 +35,7 @@ html, body {
   padding-bottom: var(--safe-bottom);
 }
 
-/* ===== Header ===== */
+/* Header */
 #header {
   flex-shrink: 0;
   padding: 10px 16px 8px;
@@ -50,7 +48,7 @@ html, body {
   z-index: 20;
 }
 
-#user-info {
+.level-title {
   font-size: 15px;
   font-weight: 600;
 }
@@ -58,14 +56,14 @@ html, body {
 #statusText {
   font-size: 13px;
   opacity: 0.85;
-  max-width: 60%;
+  max-width: 55%;
   text-align: right;
 }
 
-/* ===== 遊戲區 ===== */
+/* 遊戲區 */
 #game-wrapper {
   flex: 1;
-  overflow: hidden;
+  overflow: auto;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -76,15 +74,26 @@ html, body {
 #game {
   position: relative;
   width: 100%;
-  max-width: 420px;
-  aspect-ratio: 1.15 / 1;
+  max-width: 440px;
+  aspect-ratio: 1.1 / 1;
   background: linear-gradient(145deg, #1e1e3f 0%, #12122a 100%);
   border-radius: 16px;
   box-shadow: 0 8px 32px rgba(0,0,0,0.4);
   overflow: hidden;
+  transition: opacity 0.3s;
 }
 
-/* ===== 牌 ===== */
+#game.level-clear {
+  animation: clearPulse 0.8s ease;
+}
+
+@keyframes clearPulse {
+  0% { transform: scale(1); filter: brightness(1); }
+  40% { transform: scale(1.03); filter: brightness(1.3); }
+  100% { transform: scale(1); filter: brightness(1); }
+}
+
+/* 牌 */
 .tile {
   position: absolute;
   transition: transform 0.15s ease;
@@ -102,13 +111,25 @@ html, body {
   font-weight: 700;
   color: #1a1a2e;
   border: 1.5px solid rgba(0,0,0,0.15);
-  box-shadow: 2px 2px 0 rgba(0,0,0,0.2);
+  box-shadow: 2px 2px 0 rgba(0,0,0,0.25);
   cursor: pointer;
   user-select: none;
+  transition: transform 0.15s, outline 0.15s;
 }
 
 .tileFront:active {
   transform: scale(0.95);
+}
+
+/* 消除動畫 */
+.tile.removing .tileFront {
+  animation: removeTile 0.28s forwards;
+}
+
+@keyframes removeTile {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.15); opacity: 0.8; }
+  100% { transform: scale(0.3); opacity: 0; }
 }
 
 .tileBack {
@@ -122,7 +143,6 @@ html, body {
   z-index: -1;
 }
 
-/* 選中與提示 */
 .selectedTile {
   outline: 3px solid #fbbf24 !important;
   outline-offset: 1px;
@@ -134,31 +154,31 @@ html, body {
   outline-offset: 1px;
 }
 
-/* 不同花色顏色 */
-.tile-dots     { background: linear-gradient(135deg, #fef3c7, #fde68a); }
-.tile-bamboo   { background: linear-gradient(135deg, #d1fae5, #a7f3d0); }
-.tile-character{ background: linear-gradient(135deg, #fee2e2, #fecaca); }
-.tile-wind     { background: linear-gradient(135deg, #e0e7ff, #c7d2fe); }
-.tile-dragon   { background: linear-gradient(135deg, #fce7f3, #fbcfe8); }
-.tile-flower   { background: linear-gradient(135deg, #fef9c3, #fde047); }
-.tile-season   { background: linear-gradient(135deg, #cffafe, #a5f3fc); }
+/* 花色顏色 */
+.tile-dots      { background: linear-gradient(135deg, #fef3c7, #fde68a); }
+.tile-bamboo    { background: linear-gradient(135deg, #d1fae5, #a7f3d0); }
+.tile-character { background: linear-gradient(135deg, #fee2e2, #fecaca); }
+.tile-wind      { background: linear-gradient(135deg, #e0e7ff, #c7d2fe); }
+.tile-dragon    { background: linear-gradient(135deg, #fce7f3, #fbcfe8); }
+.tile-flower    { background: linear-gradient(135deg, #fef9c3, #fde047); }
+.tile-season    { background: linear-gradient(135deg, #cffafe, #a5f3fc); }
 
-/* ===== Footer 按鈕 ===== */
+/* Footer */
 #footer {
   flex-shrink: 0;
   padding: 12px 16px;
   display: flex;
-  gap: 12px;
+  gap: 10px;
   background: rgba(26, 26, 46, 0.95);
   border-top: 1px solid rgba(255,255,255,0.06);
 }
 
 .btn {
   flex: 1;
-  height: 48px;
+  height: 46px;
   border: none;
   border-radius: 12px;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
   color: white;
   background: #334155;
@@ -174,11 +194,70 @@ html, body {
   background: var(--accent);
 }
 
-.btn.primary:active {
-  background: var(--accent-hover);
+/* 關卡選擇畫面 */
+.level-select {
+  width: 100%;
+  max-width: 400px;
+  padding: 20px 12px;
+  text-align: center;
 }
 
-/* 小螢幕微調 */
+.level-select h2 {
+  margin-bottom: 20px;
+  font-size: 22px;
+}
+
+.level-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.level-btn {
+  position: relative;
+  background: #1e1e3f;
+  border: 2px solid #334155;
+  border-radius: 16px;
+  padding: 18px 12px;
+  color: white;
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s;
+}
+
+.level-btn:not(.locked):active {
+  transform: scale(0.97);
+  border-color: var(--accent);
+}
+
+.level-btn.locked {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.lv-num {
+  font-size: 13px;
+  opacity: 0.7;
+  margin-bottom: 4px;
+}
+
+.lv-name {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.lv-diff {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.lock {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 16px;
+}
+
 @media (max-width: 380px) {
   :root {
     --tile-w: 36px;

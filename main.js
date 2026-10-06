@@ -9,20 +9,74 @@ import {
   randEl,
   sleep,
 } from "./utils.js";
-import { isOpen, COORDINATES } from "./coordinates.js";
+import { isOpen } from "./coordinates.js";
+import { LEVELS } from "./levels.js";
 
 let selectedCoord = null;
-let currentCoords = [...COORDINATES];
+let currentCoords = [];
 let hintCoord = null;
+let currentLevelId = 1;
+let COORDINATES = [];
 
-$(document).ready(initGame);
-
-async function initGame() {
-  shuffle(images);
-  createTiles({ clickFunction: clickTileAt });
-  await checkMovePossible("遊戲載入中...");
+// ===== 進度儲存 =====
+function getUnlockedLevel() {
+  return parseInt(localStorage.getItem("mahjong_unlocked") || "1", 10);
 }
 
+function unlockLevel(id) {
+  const current = getUnlockedLevel();
+  if (id > current) {
+    localStorage.setItem("mahjong_unlocked", id);
+  }
+}
+
+// ===== 關卡選擇畫面 =====
+function showLevelSelect() {
+  const unlocked = getUnlockedLevel();
+  let html = `<div class="level-select">
+    <h2>選擇關卡</h2>
+    <div class="level-grid">`;
+
+  LEVELS.forEach((lv) => {
+    const locked = lv.id > unlocked;
+    html += `
+      <button class="level-btn ${locked ? "locked" : ""}" data-id="${lv.id}" ${locked ? "disabled" : ""}>
+        <div class="lv-num">第 ${lv.id} 關</div>
+        <div class="lv-name">${lv.name}</div>
+        <div class="lv-diff">${lv.difficulty}</div>
+        ${locked ? "<div class='lock'>🔒</div>" : ""}
+      </button>`;
+  });
+
+  html += `</div></div>`;
+  $("#game-wrapper").html(html);
+
+  $(".level-btn:not(.locked)").on("click", function () {
+    const id = parseInt($(this).data("id"), 10);
+    startLevel(id);
+  });
+}
+
+// ===== 開始指定關卡 =====
+async function startLevel(id) {
+  currentLevelId = id;
+  const level = LEVELS.find((l) => l.id === id);
+  COORDINATES = [...level.coords];
+  currentCoords = [...COORDINATES];
+
+  // 恢復遊戲區結構
+  $("#game-wrapper").html(`<div id="game"></div>`);
+  $("#header .level-title").text(`第 ${id} 關・${level.name}`);
+
+  selectedCoord = null;
+  hintCoord = null;
+
+  shuffle(images);
+  createTiles({ clickFunction: clickTileAt, coords: COORDINATES });
+  await checkMovePossible("開始遊戲");
+}
+
+// ===== 原本的遊戲邏輯 =====
 function clickTileAt(coord) {
   if (!isOpen(coord, currentCoords)) return;
 
@@ -46,19 +100,22 @@ function executeMove(tile, selectedTile, coord, coord2) {
   selectedCoord = null;
   hintCoord = null;
 
-  selectedTile.animate({ opacity: 0 }, 120);
-  tile.animate({ opacity: 0 }, 120, () => {
+  // 加強消除動畫
+  selectedTile.addClass("removing");
+  tile.addClass("removing");
+
+  setTimeout(() => {
     selectedTile.hide();
     tile.hide();
     remove(coord, currentCoords);
     remove(coord2, currentCoords);
 
     if (currentCoords.length === 0) {
-      writeStatus("恭喜過關！🎉");
+      onLevelClear();
     } else {
       checkMovePossible("計算中...");
     }
-  });
+  }, 280);
 }
 
 function selectTileAt(coord) {
@@ -105,7 +162,7 @@ async function checkMovePossible(message) {
 function updateStatus(moves) {
   if (moves.length === 0) {
     writeStatus("無路可走了！🚧");
-    // 之後這裡會觸發廣告彈窗
+    // 之後接廣告
   } else if (moves.length === 1) {
     writeStatus("只剩 1 步可走");
   } else {
@@ -113,16 +170,44 @@ function updateStatus(moves) {
   }
 }
 
+// ===== 過關處理 =====
+async function onLevelClear() {
+  writeStatus("恭喜過關！🎉");
+  unlockLevel(currentLevelId + 1);
+
+  // 簡單過關動畫
+  $("#game").addClass("level-clear");
+  await sleep(800);
+
+  const nextId = currentLevelId + 1;
+  if (nextId <= LEVELS.length) {
+    if (confirm(`第 ${currentLevelId} 關完成！\n是否前往第 ${nextId} 關？`)) {
+      startLevel(nextId);
+    } else {
+      showLevelSelect();
+    }
+  } else {
+    alert("恭喜你通過所有關卡！");
+    showLevelSelect();
+  }
+}
+
+// ===== 按鈕事件 =====
 $("#restartButton").on("click", async () => {
+  if ($(".level-select").length) return; // 在選關畫面不動作
   $("#game").css("opacity", 0.3);
   await sleep(150);
-  restartGame();
-  await checkMovePossible("重新開始...");
+  currentCoords = [...COORDINATES];
+  selectedCoord = null;
+  hintCoord = null;
+  shuffle(images);
+  createTiles({ clickFunction: clickTileAt, coords: COORDINATES });
+  await checkMovePossible("重新開始");
   $("#game").css("opacity", 1);
 });
 
 $("#hintButton").on("click", () => {
-  if (!hintCoord) return;
+  if (!hintCoord || $(".level-select").length) return;
   const times = 5;
   const delay = 160;
   for (let i = 0; i < times; i++) {
@@ -135,13 +220,21 @@ $("#hintButton").on("click", () => {
   }, delay * times);
 });
 
-function restartGame() {
+$("#levelSelectBtn").on("click", () => {
+  showLevelSelect();
+});
+
+// 暴露
+window.restartGame = () => {
+  currentCoords = [...COORDINATES];
   selectedCoord = null;
   hintCoord = null;
-  currentCoords = [...COORDINATES];
   shuffle(images);
-  createTiles({ clickFunction: clickTileAt });
-}
+  createTiles({ clickFunction: clickTileAt, coords: COORDINATES });
+  checkMovePossible("洗牌完成");
+};
 
-// 暴露給之後廣告成功後呼叫
-window.restartGame = restartGame;
+// ===== 初始化 =====
+$(document).ready(() => {
+  showLevelSelect();
+});

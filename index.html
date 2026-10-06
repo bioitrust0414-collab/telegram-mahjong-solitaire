@@ -5,49 +5,40 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>麻將接龍</title>
   
-  <!-- Telegram WebApp -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  
-  <!-- jQuery -->
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-  
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div id="app">
-    <!-- 頂部狀態列 -->
     <header id="header">
-      <div id="user-info">麻將接龍</div>
+      <div id="user-info">
+        <span class="level-title">麻將接龍</span>
+      </div>
       <div id="statusText">載入中...</div>
     </header>
 
-    <!-- 遊戲區 -->
     <main id="game-wrapper">
-      <div id="game"></div>
+      <!-- 關卡選擇或遊戲會動態渲染在這裡 -->
     </main>
 
-    <!-- 底部操作列 -->
     <footer id="footer">
+      <button id="levelSelectBtn" class="btn">關卡</button>
       <button id="hintButton" class="btn">提示</button>
-      <button id="restartButton" class="btn primary">重新開始</button>
+      <button id="restartButton" class="btn primary">重來</button>
     </footer>
   </div>
 
   <script type="module" src="./main.js"></script>
   
   <script>
-    // Telegram 初始化
     if (window.Telegram?.WebApp) {
       const tg = window.Telegram.WebApp;
       tg.ready();
       tg.expand();
-      // 可選：跟隨主題
-      document.documentElement.style.setProperty('--tg-bg', tg.themeParams.bg_color || '#1a1a2e');
-      document.documentElement.style.setProperty('--tg-text', tg.themeParams.text_color || '#ffffff');
-      
       const user = tg.initDataUnsafe?.user;
       if (user) {
-        document.getElementById('user-info').textContent = user.first_name || '玩家';
+        // 可顯示用戶名
       }
     }
   </script>
