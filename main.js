@@ -23,6 +23,107 @@ let currentLevelId = 1;
 let COORDINATES = [];
 let singleLayerMode = true;
 
+// ===== 3D 旋轉狀態 =====
+let rotX = -28;
+let rotY = -35;
+let isDragging = false;
+let lastX = 0;
+let lastY = 0;
+
+function applyRotation() {
+  const world = document.getElementById("cube-world");
+  if (world) {
+    world.style.transform = `rotateX(${rotX}deg) rotateY(${rotY}deg)`;
+  }
+}
+
+function init3DControls() {
+  const scene = document.getElementById("scene-3d");
+  if (!scene) return;
+
+  const start = (x, y) => {
+    isDragging = true;
+    lastX = x;
+    lastY = y;
+  };
+  const move = (x, y) => {
+    if (!isDragging) return;
+    const dx = x - lastX;
+    const dy = y - lastY;
+    rotY += dx * 0.6;
+    rotX = Math.max(-80, Math.min(80, rotX - dy * 0.6));
+    lastX = x;
+    lastY = y;
+    applyRotation();
+  };
+  const end = () => { isDragging = false; };
+
+  scene.addEventListener("mousedown", (e) => start(e.clientX, e.clientY));
+  window.addEventListener("mousemove", (e) => move(e.clientX, e.clientY));
+  window.addEventListener("mouseup", end);
+
+  scene.addEventListener("touchstart", (e) => {
+    const t = e.touches[0];
+    start(t.clientX, t.clientY);
+  }, { passive: true });
+  scene.addEventListener("touchmove", (e) => {
+    const t = e.touches[0];
+    move(t.clientX, t.clientY);
+  }, { passive: true });
+  scene.addEventListener("touchend", end);
+}
+
+// ===== 更新 3D 結構預覽 =====
+function updateStructurePanel(coords) {
+  const world = document.getElementById("cube-world");
+  const label = document.getElementById("layer-label");
+  if (!world || !label) return;
+
+  world.innerHTML = "";
+
+  let maxZ = 0;
+  coords.forEach(([, , z]) => {
+    if (z > maxZ) maxZ = Math.floor(z);
+  });
+
+  const isSingle = maxZ === 0;
+  const layerH = 12; // 每層在 3D 中的高度間距
+
+  if (isSingle) {
+    const floor = document.createElement("div");
+    floor.className = "floor-3d single";
+    floor.textContent = "平面";
+    floor.style.transform = `translateZ(0px)`;
+    world.appendChild(floor);
+    label.innerHTML = `<span class="mode single">單層</span>平面布局`;
+  } else {
+    for (let z = 0; z <= maxZ; z++) {
+      const floor = document.createElement("div");
+      floor.className = "floor-3d";
+      floor.textContent = z;
+      // 越高的層 translateZ 越大，形成堆疊
+      const tz = z * layerH;
+      const scale = 1 - z * 0.04;
+      floor.style.transform = `translateZ(${tz}px) scale(${scale})`;
+      floor.style.opacity = 1 - z * 0.06;
+      world.appendChild(floor);
+    }
+    label.innerHTML = `<span class="mode multi">立體</span>${maxZ + 1} 層`;
+  }
+
+  // 重設角度並套用
+  rotX = -28;
+  rotY = -35;
+  applyRotation();
+}
+
+function clearStructurePanel() {
+  const world = document.getElementById("cube-world");
+  const label = document.getElementById("layer-label");
+  if (world) world.innerHTML = "";
+  if (label) label.textContent = "—";
+}
+
 // ===== 進度 =====
 function getUnlockedLevel() {
   return parseInt(localStorage.getItem("mahjong_unlocked") || "1", 10);
@@ -30,54 +131,6 @@ function getUnlockedLevel() {
 function unlockLevel(id) {
   const current = getUnlockedLevel();
   if (id > current) localStorage.setItem("mahjong_unlocked", id);
-}
-
-// ===== 側邊結構圖 =====
-function updateStructurePanel(coords) {
-  const diagram = document.getElementById("layer-diagram");
-  const label = document.getElementById("layer-label");
-  if (!diagram || !label) return;
-
-  // 統計每一層有多少張牌
-  const layerCount = {};
-  let maxZ = 0;
-  coords.forEach(([, , z]) => {
-    const zz = Math.floor(z);
-    layerCount[zz] = (layerCount[zz] || 0) + 1;
-    if (zz > maxZ) maxZ = zz;
-  });
-
-  const isSingle = maxZ === 0;
-  diagram.innerHTML = "";
-
-  if (isSingle) {
-    // 單層：只顯示一塊綠色
-    const block = document.createElement("div");
-    block.className = "layer-block single";
-    block.dataset.z = "0";
-    diagram.appendChild(block);
-    label.innerHTML = `<span class="mode single">單層</span>平面`;
-  } else {
-    // 多層：由下往上堆疊
-    for (let z = 0; z <= maxZ; z++) {
-      const block = document.createElement("div");
-      block.className = "layer-block";
-      block.dataset.z = z;
-      // 層數越高，寬度稍微縮小，模擬立體感
-      const scale = 1 - z * 0.06;
-      block.style.width = 48 * scale + "px";
-      block.style.opacity = 1 - z * 0.08;
-      diagram.appendChild(block);
-    }
-    label.innerHTML = `<span class="mode multi">立體</span>${maxZ + 1} 層`;
-  }
-}
-
-function clearStructurePanel() {
-  const diagram = document.getElementById("layer-diagram");
-  const label = document.getElementById("layer-label");
-  if (diagram) diagram.innerHTML = "";
-  if (label) label.textContent = "—";
 }
 
 // ===== 關卡選擇 =====
@@ -106,16 +159,12 @@ async function startLevel(id) {
   const level = LEVELS.find((l) => l.id === id);
   COORDINATES = [...level.coords];
   currentCoords = [...COORDINATES];
-
   singleLayerMode = isSingleLayer(COORDINATES);
 
-  // 更新側邊結構圖
   updateStructurePanel(COORDINATES);
 
   $("#game-wrapper").html(`<div id="game"></div>`);
-  $("#header .level-title").text(
-    `第 ${id} 關・${level.name}`
-  );
+  $("#header .level-title").text(`第 ${id} 關・${level.name}`);
 
   selectedCoord = null;
   hintCoord = null;
@@ -212,11 +261,8 @@ function executeMove(tile, selectedTile, coord, coord2) {
       tile.hide();
       remove(coord, currentCoords);
       remove(coord2, currentCoords);
-      if (currentCoords.length === 0) {
-        onLevelClear();
-      } else {
-        checkMovePossible("計算中...");
-      }
+      if (currentCoords.length === 0) onLevelClear();
+      else checkMovePossible("計算中...");
     }, 280);
   }, 180);
 }
@@ -319,4 +365,7 @@ window.restartGame = () => {
   checkMovePossible("洗牌完成");
 };
 
-$(document).ready(showLevelSelect);
+$(document).ready(() => {
+  init3DControls();
+  showLevelSelect();
+});
