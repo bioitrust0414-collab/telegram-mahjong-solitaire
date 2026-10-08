@@ -1,54 +1,388 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>麻將接龍</title>
-  
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>麻將消除 · Mahjong Solitaire</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{margin:0;font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+ background:radial-gradient(120% 100% at 50% 0%,#2a7a58 0%,#1c5b40 55%,#123d2b 100%);
+ color:#eaf5ee;user-select:none;-webkit-user-select:none;overflow:hidden}
+#app{display:flex;flex-direction:column;height:100dvh;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+header{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:9px 14px;
+ background:linear-gradient(#173328,#12271e);box-shadow:0 2px 8px rgba(0,0,0,.45);z-index:50}
+.logo{display:flex;align-items:center;gap:8px;font-weight:700;font-size:18px;letter-spacing:2px}
+.logo .mini{width:20px;height:26px;border-radius:3px;background:linear-gradient(135deg,#fffdf3,#eadcb8);
+ box-shadow:1px 2px 0 #b89a5e;position:relative;flex:none}
+.logo .mini::after{content:"中";position:absolute;inset:0;display:grid;place-items:center;color:#c0392b;font-size:13px;font-weight:700}
+.stats{display:flex;gap:8px;flex-wrap:wrap;margin-left:auto}
+.chip{background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.15);padding:4px 10px;border-radius:999px;font-size:13px;white-space:nowrap}
+.chip b{color:#ffd76a;font-variant-numeric:tabular-nums}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+button{font:inherit;border:0;cursor:pointer;border-radius:10px;padding:8px 14px;font-weight:600;color:#3c2d0e;
+ background:linear-gradient(#ffd76a,#f0b429);box-shadow:0 2px 0 #b98a12,0 3px 6px rgba(0,0,0,.35);transition:transform .06s}
+button:active{transform:translateY(1px)}
+button.ghost{background:rgba(255,255,255,.12);color:#eaf5ee;box-shadow:inset 0 0 0 1px rgba(255,255,255,.25)}
+#boardWrap{flex:1;position:relative;overflow:hidden;touch-action:manipulation}
+#board{position:absolute;width:678px;height:442px;transform-origin:0 0}
+.tile{position:absolute;width:36px;height:48px;border-radius:6px;
+ background:linear-gradient(160deg,#fffef8 0%,#f7eed4 60%,#efdfb4 100%);
+ box-shadow:0 0 0 1px #cbb98b inset,3px 4px 0 #b99a5f,4px 6px 8px rgba(0,0,0,.35);
+ cursor:pointer;transition:filter .12s;animation:dealin .3s backwards}
+@keyframes dealin{from{opacity:0;transform:translateY(-8px)}}
+.tile svg{position:absolute;left:1px;top:2px;width:calc(100% - 2px);height:calc(100% - 3px)}
+.tile svg text{text-anchor:middle;font-family:"Noto Serif TC","Songti TC","PMingLiU",serif;font-weight:700}
+.tile.dim{filter:brightness(.72) saturate(.75)}
+.tile.free:hover{filter:brightness(1.08)}
+.tile.sel{filter:brightness(1.12);transform:translateY(-3px);
+ box-shadow:0 0 0 2px #ffd76a inset,3px 4px 0 #b99a5f,0 0 12px 2px rgba(255,215,106,.55)}
+.tile.hint{animation:pulse .5s ease-in-out 4 alternate!important}
+@keyframes pulse{from{box-shadow:0 0 0 1px #cbb98b inset,3px 4px 0 #b99a5f}
+ to{box-shadow:0 0 0 2px #ff8f3d inset,3px 4px 0 #b99a5f,0 0 14px 3px rgba(255,143,61,.7)}}
+.tile.shake{animation:shake .3s}
+@keyframes shake{25%{transform:translateX(-3px)}75%{transform:translateX(3px)}}
+.tile.bye{animation:bye .26s ease-in forwards;pointer-events:none}
+@keyframes bye{to{transform:scale(.45) translateY(16px);opacity:0}}
+#toast{position:fixed;left:50%;bottom:52px;transform:translateX(-50%);background:rgba(10,30,20,.85);
+ color:#ffe9b0;padding:8px 16px;border-radius:999px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:60}
+#overlay{position:fixed;inset:0;display:none;place-items:center;background:rgba(4,18,12,.6);z-index:70;backdrop-filter:blur(2px)}
+#overlay.show{display:grid}
+.card{background:#fffdf3;color:#3a2f14;border-radius:16px;padding:26px 34px;text-align:center;max-width:88vw;
+ box-shadow:0 12px 40px rgba(0,0,0,.5)}
+.card h2{margin:0 0 8px;font-size:24px;color:#1c5b40}
+.card p{margin:6px 0 16px;line-height:1.6}
+.card .row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+footer{padding:6px 14px 10px;font-size:12px;color:rgba(234,245,238,.75);text-align:center}
+@media (max-width:640px){header{gap:6px;padding:8px}.chip{font-size:12px;padding:3px 8px}button{padding:7px 10px;font-size:13px}.logo{font-size:16px}}
+</style>
 </head>
 <body>
-  <div id="app">
-    <header id="header">
-      <div id="user-info">
-        <span class="level-title">麻將接龍</span>
-      </div>
-      <div id="statusText">載入中...</div>
-    </header>
-
-    <div id="main-area">
-      <!-- 可旋轉 3D 結構預覽 -->
-      <aside id="structure-panel">
-        <div class="panel-title">3D 結構</div>
-        <div id="scene-3d">
-          <div id="cube-world"></div>
-        </div>
-        <div id="layer-label">—</div>
-        <div class="hint-rotate">拖曳旋轉</div>
-      </aside>
-
-      <main id="game-wrapper">
-        <!-- 關卡選擇或遊戲 -->
-      </main>
-    </div>
-
-    <footer id="footer">
-      <button id="levelSelectBtn" class="btn">關卡</button>
-      <button id="hintButton" class="btn">提示</button>
-      <button id="restartButton" class="btn primary">重來</button>
-    </footer>
+<div id="app">
+ <header>
+  <div class="logo"><span class="mini"></span>麻將消除</div>
+  <div class="stats">
+   <span class="chip">⏱ <b id="stTime">00:00</b></span>
+   <span class="chip">⭐ <b id="stScore">0</b></span>
+   <span class="chip">🀄 <b id="stLeft">144</b></span>
+   <span class="chip">🔁 <b id="stMoves">0</b></span>
   </div>
+  <div class="btns">
+   <button id="btnNew">新局</button>
+   <button id="btnHint">提示</button>
+   <button id="btnUndo" class="ghost">復原</button>
+   <button id="btnShuffle" class="ghost">洗牌</button>
+   <button id="btnSound" class="ghost">🔊</button>
+  </div>
+ </header>
+ <div id="boardWrap"><div id="board"></div></div>
+ <footer>點擊兩張「上方無遮擋、且左或右至少一側空開」的相同牌即可消除；「梅蘭竹菊」花牌互相可配、「春夏秋冬」季節牌互相可配。</footer>
+</div>
+<div id="toast"></div>
+<div id="overlay"><div class="card"><h2 id="ovTitle"></h2><p id="ovText"></p><div class="row" id="ovBtns"></div></div></div>
 
-  <script type="module" src="./main.js"></script>
-  
-  <script>
-    if (window.Telegram?.WebApp) {
-      const tg = window.Telegram.WebApp;
-      tg.ready();
-      tg.expand();
+<script>
+'use strict';
+/* Telegram Mini App */
+if (window.Telegram?.WebApp) {
+  const tg = window.Telegram.WebApp;
+  tg.ready();
+  tg.expand();
+}
+
+/* ========= 常數與工具 ========= */
+const SX=39,SY=52,DX=4,DY=9,PADY=46;
+const NUMCN=['一','二','三','四','五','六','七','八','九'];
+const SUITED=[];for(let i=1;i<=9;i++)SUITED.push('c'+i,'b'+i,'w'+i);
+const HONORS=['E','S','W','N','Rd','Gr','Wh'];
+const FACE_ALL=SUITED.concat(HONORS);
+const FLOWERS=['F1','F2','F3','F4'],SEASONS=['T1','T2','T3','T4'];
+const pk=p=>p.x+','+p.y+','+p.z;
+const groupOf=f=>f[0]==='F'?'F':(f[0]==='T'?'T':f);
+
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+let rng=mulberry32(((new URLSearchParams(location.search).get('seed')|0)||((Date.now()&0x7fffffff)^0x9e3779b9))>>>0);
+function shuffle(a,r){for(let i=a.length-1;i>0;i--){const j=(r()*(i+1))|0;[a[i],a[j]]=[a[j],a[i]]}return a}
+
+/* ========= 烏龜版型：144 格 ========= */
+function buildLayout(){
+ const P=[];
+ const base=[[2,12],[1,13],[0,14],[0,14],[0,14],[0,14],[1,13],[2,12]];
+ base.forEach((row,y)=>{for(let x=row[0];x<=row[1];x++)P.push({x,y,z:0})});
+ [[-1,3],[-1,4],[15,3],[15,4]].forEach(([x,y])=>P.push({x,y,z:0}));
+ for(let y=2;y<=5;y++)for(let x=6;x<=9;x++)P.push({x,y,z:1});
+ for(let y=3;y<=4;y++)for(let x=6;x<=9;x++)P.push({x,y,z:2});
+ for(let y=3;y<=4;y++)for(let x=7;x<=8;x++){P.push({x,y,z:3});P.push({x,y,z:4});}
+ return P;
+}
+function posFreeGen(p,occ){
+ if(occ.has(pk({x:p.x,y:p.y,z:p.z+1})))return false;
+ const L=occ.has(pk({x:p.x-1,y:p.y,z:p.z})),R=occ.has(pk({x:p.x+1,y:p.y,z:p.z}));
+ return !(L&&R);
+}
+function buildDeal(positions,r,suitedPairs,flowerTokens,seasonTokens){
+ const nS=suitedPairs.length,nF=flowerTokens.length/2,nN=seasonTokens.length/2;
+ if(positions.length!==2*(nS+nF+nN))throw new Error('pool/layout mismatch');
+ for(let att=0;att<400;att++){
+  const types=[...Array(nS).fill('s'),...Array(nF).fill('f'),...Array(nN).fill('n')];
+  shuffle(types,r);
+  const fT=shuffle(flowerTokens.slice(),r),nT=shuffle(seasonTokens.slice(),r);
+  let fi=0,ft=0,nt=0,ok=true;
+  const placed=[],occ=new Set();
+  for(const ty of types){
+   let free=positions.filter(p=>posFreeGen(p,occ));
+   if(free.length<2){ok=false;break}
+   shuffle(free,r);
+   let a=null,b=null;
+   outer:for(const ca of free){
+    const occA=new Set(occ);occA.add(pk(ca));
+    for(const cb of free){
+     if(cb===ca)continue;
+     if(posFreeGen(cb,occA)&&posFreeGen(ca,new Set([...occ,pk(cb)]))){a=ca;b=cb;break outer}
     }
-  </script>
+   }
+   if(!a){ok=false;break}
+   occ.add(pk(a));occ.add(pk(b));
+   if(ty==='f'){placed.push({p:a,f:fT[ft++]},{p:b,f:fT[ft++]});}
+   else if(ty==='n'){placed.push({p:a,f:nT[nt++]},{p:b,f:nT[nt++]});}
+   else{const f=suitedPairs[fi++];placed.push({p:a,f},{p:b,f});}
+  }
+  if(ok&&placed.length===positions.length)return placed;
+ }
+ return null;
+}
+
+/* ========= 牌面繪製 ========= */
+function dot(x,y,r,red){const c=red?'#c0392b':'#2a5caa';
+ return `<circle cx="${x}" cy="${y}" r="${r}" fill="${c}"/><circle cx="${x}" cy="${y}" r="${r*.6}" fill="none" stroke="#fdf6e3" stroke-width="${Math.max(1.2,r*.16)}"/><circle cx="${x}" cy="${y}" r="${r*.24}" fill="#fdf6e3"/>`}
+const DOTL={1:[[30,42,13,1]],2:[[30,28,9],[30,56,9]],3:[[19,26,8],[30,42,8,1],[41,58,8]],
+ 4:[[19,26,8],[41,26,8],[19,58,8],[41,58,8]],5:[[19,26,8],[41,26,8],[30,42,8,1],[19,58,8],[41,58,8]],
+ 6:[[19,24,8],[41,24,8],[19,42,8],[41,42,8],[19,60,8],[41,60,8]],
+ 7:[[15,21,7],[30,21,7],[45,21,7],[22,43,7],[38,43,7],[15,64,7],[45,64,7]],
+ 8:[[20,17,7],[40,17,7],[20,34,7],[40,34,7],[20,51,7],[40,51,7],[20,68,7],[40,68,7]],
+ 9:[[15,17,8],[30,17,8],[45,17,8],[15,42,8],[30,42,8,1],[45,42,8],[15,67,8],[30,67,8],[45,67,8]]};
+function stick(x,y,h,w){w=w||7;const cap=h>=20;
+ return `<g><rect x="${x-w/2}" y="${y-h/2}" width="${w}" height="${h}" rx="3" fill="#1f7a3d"/>`+
+ (cap?`<rect x="${x-w/2-1}" y="${y-h/2-2}" width="${w+2}" height="4.5" rx="2" fill="#c0392b"/>`:'')+
+ (h>14?`<line x1="${x-w/2+1}" y1="${y}" x2="${x+w/2-1}" y2="${y}" stroke="#0f5427" stroke-width="1.4"/>`:'')+`</g>`}
+const BAML={1:[[30,44,50,11]],2:[[19,44,32],[41,44,32]],3:[[30,24,26],[18,58,26],[42,58,26]],
+ 4:[[18,28,24],[42,28,24],[18,60,24],[42,60,24]],5:[[18,27,24],[42,27,24],[30,44,22],[18,61,24],[42,61,24]],
+ 6:[[19,23,15],[41,23,15],[19,42,15],[41,42,15],[19,61,15],[41,61,15]],
+ 7:[[14,20,15],[30,20,15],[46,20,15],[22,44,15],[38,44,15],[14,66,15],[46,66,15]],
+ 8:[[19,16,12],[41,16,12],[19,33,12],[41,33,12],[19,50,12],[41,50,12],[19,67,12],[41,67,12]],
+ 9:[[14,18,15],[30,18,15],[46,18,15],[14,42,15],[30,42,15],[46,42,15],[14,66,15],[30,66,15],[46,66,15]]};
+function blossom(c){let s='';for(let a=0;a<360;a+=72)s+=`<circle cx="0" cy="-5.5" r="3.2" fill="${c}" transform="rotate(${a})"/>`;
+ return `<g transform="translate(30,16)">${s}<circle r="2.6" fill="#fff3c4"/></g>`}
+const FDEF=[['梅','#c94f7c'],['蘭','#3a9e5f'],['竹','#2f8f6b'],['菊','#d98e04']];
+const TDEF=[['春','#2e8b57'],['夏','#d24a43'],['秋','#d97706'],['冬','#3b82c4']];
+function faceSVG(f){
+ let s='';
+ const n=+f.slice(1);
+ if(f[0]==='c')s=DOTL[n].map(p=>dot(p[0],p[1],p[2],p[3])).join('');
+ else if(f[0]==='b')s=BAML[n].map(p=>stick(p[0],p[1],p[2],p[3])).join('');
+ else if(f[0]==='w')s=`<text x="30" y="40" font-size="30" fill="#28457c">${NUMCN[n-1]}</text><text x="30" y="74" font-size="27" fill="#c0392b">萬</text>`;
+ else if('ESWN'.includes(f))s=`<text x="30" y="58" font-size="40" fill="#28457c">${{E:'東',S:'南',W:'西',N:'北'}[f]}</text>`;
+ else if(f==='Rd')s=`<text x="30" y="58" font-size="42" fill="#c0392b">中</text>`;
+ else if(f==='Gr')s=`<text x="30" y="58" font-size="42" fill="#1f7a3d">發</text>`;
+ else if(f==='Wh')s=`<rect x="15" y="22" width="30" height="42" rx="5" fill="none" stroke="#28457c" stroke-width="4.5"/><rect x="23" y="30" width="14" height="26" rx="3" fill="none" stroke="#28457c" stroke-width="2"/>`;
+ else if(f[0]==='F'){const d=FDEF[n-1];s=blossom(d[1])+`<text x="30" y="54" font-size="28" fill="#2c5e2e">${d[0]}</text><text x="30" y="77" font-size="13" fill="#9a8a5a">花</text>`;}
+ else if(f[0]==='T'){const d=TDEF[n-1];s=`<circle cx="30" cy="17" r="5.5" fill="${d[1]}" opacity=".85"/><text x="30" y="56" font-size="30" fill="${d[1]}">${d[0]}</text><text x="30" y="77" font-size="13" fill="#9a8a5a">季</text>`;}
+ return `<svg viewBox="0 0 60 84" xmlns="http://www.w3.org/2000/svg">${s}</svg>`;
+}
+
+/* ========= 音效 ========= */
+let actx=null,soundOn=true;
+function tone(fq,dur,type,gain,delay){if(!soundOn)return;try{
+ actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+ const o=actx.createOscillator(),g=actx.createGain(),t=actx.currentTime+(delay||0);
+ o.type=type||'sine';o.frequency.value=fq;o.connect(g);g.connect(actx.destination);
+ g.gain.setValueAtTime(gain||.12,t);g.gain.exponentialRampToValueAtTime(.001,t+dur);
+ o.start(t);o.stop(t+dur);}catch(e){}}
+const sfx={click:()=>tone(320,.06,'triangle',.08),err:()=>tone(130,.18,'sawtooth',.08),
+ match:()=>{tone(660,.1,'sine',.12);tone(880,.14,'sine',.12,.07)},
+ win:()=>[523,659,784,1047].forEach((f,i)=>tone(f,.22,'sine',.13,i*.13))};
+
+/* ========= 遊戲狀態 ========= */
+const $=id=>document.getElementById(id);
+let tiles=[],curOrder=[],selected=null,undoStack=[],score=0,moves=0,lock=false;
+let startTime=0,timerId=null,over=false;
+const aliveCount=()=>tiles.reduce((s,t)=>s+t.alive,0);
+function computeOcc(){const m=new Map();for(const t of tiles)if(t.alive)m.set(pk(t),t);return m}
+function isFreeTile(t,occ){occ=occ||computeOcc();
+ if(occ.has(pk({x:t.x,y:t.y,z:t.z+1})))return false;
+ const L=occ.get(pk({x:t.x-1,y:t.y,z:t.z})),R=occ.get(pk({x:t.x+1,y:t.y,z:t.z}));
+ return !(L&&R)}
+function freeList(){const occ=computeOcc();return tiles.filter(t=>t.alive&&isFreeTile(t,occ))}
+function findAnyPair(){const occ=computeOcc();const map=new Map();
+ for(const t of tiles){if(!t.alive||!isFreeTile(t,occ))continue;const g=groupOf(t.face);
+  if(map.has(g))return[map.get(g),t];map.set(g,t)}
+ return null}
+
+/* ========= 發牌 / 洗牌 ========= */
+function dealNew(){
+ for(let i=0;i<6;i++){
+  const deal=buildDeal(buildLayout(),rng,FACE_ALL.concat(FACE_ALL),FLOWERS.slice(),SEASONS.slice());
+  if(deal)return deal;
+  rng=mulberry32((Math.random()*0x7fffffff)|0);
+ }
+ return null;
+}
+function orderFrom(deal){const o=[];for(let k=deal.length/2-1;k>=0;k--)o.push([2*k,2*k+1]);return o}
+function newGame(){
+ over=false;selected=null;undoStack=[];score=0;moves=0;hideOverlay();
+ const deal=dealNew();
+ if(!deal){toast('發牌失敗，請重試');return;}
+ tiles=deal.map((d,i)=>({id:i,x:d.p.x,y:d.p.y,z:d.p.z,face:d.f,alive:true,el:null}));
+ curOrder=orderFrom(deal);
+ startTime=Date.now();clearInterval(timerId);
+ timerId=setInterval(updTime,500);updTime();updStats();render();
+}
+function doShuffle(){
+ const rest=tiles.filter(t=>t.alive);
+ if(!rest.length||lock)return;
+ const cnt={};rest.forEach(t=>cnt[t.face]=(cnt[t.face]||0)+1);
+ const sp=[];FACE_ALL.forEach(f=>{for(let i=0;i<(cnt[f]||0)/2;i++)sp.push(f)});
+ const ft=rest.filter(t=>t.face[0]==='F').map(t=>t.face);
+ const nt=rest.filter(t=>t.face[0]==='T').map(t=>t.face);
+ const pos=rest.map(t=>({x:t.x,y:t.y,z:t.z}));
+ let deal=null;
+ for(let i=0;i<6&&!deal;i++){deal=buildDeal(pos,rng,sp,ft,nt);if(!deal)rng=mulberry32((Math.random()*0x7fffffff)|0)}
+ if(!deal){toast('洗牌失敗，請再試一次');return}
+ const byPos=new Map(rest.map(t=>[pk(t),t]));
+ deal.forEach(d=>{byPos.get(pk(d.p)).face=d.f});
+ curOrder=orderFrom(deal);
+ selected=null;undoStack=[];score=Math.max(0,score-30);
+ render();updStats();toast('已重新洗牌（仍保證可完成）');sfx.click();checkEnd(true);
+}
+
+/* ========= 顯示 ========= */
+const board=$('board');
+function render(){
+ const occ=computeOcc();
+ board.innerHTML='';
+ let i=0;
+ for(const t of tiles){
+  if(!t.alive)continue;
+  const el=document.createElement('div');
+  el.className='tile '+(isFreeTile(t,occ)?'free':'dim');
+  el.dataset.id=t.id;
+  el.style.left=((t.x+1)*SX+t.z*DX)+'px';
+  el.style.top=(PADY+t.y*SY-t.z*DY)+'px';
+  el.style.zIndex=t.z*100+t.y;
+  el.style.animationDelay=(i++*2.5)+'ms';
+  el.innerHTML=faceSVG(t.face);
+  board.appendChild(el);t.el=el;
+ }
+ if(selected&&selected.alive&&selected.el)selected.el.classList.add('sel');
+ fit();
+}
+const boardWrapEl=document.getElementById('boardWrap');
+function fit(){
+ if(!boardWrapEl)return;
+ const w=boardWrapEl.clientWidth,h=boardWrapEl.clientHeight;
+ const s=Math.min(w/690,h/455,1.25);
+ board.style.transform=`scale(${s})`;
+ board.style.left=Math.max(0,(w-678*s)/2)+'px';
+ board.style.top=Math.max(0,(h-442*s)/2)+'px';
+}
+window.addEventListener('resize',fit);
+function updStats(){$('stScore').textContent=score;$('stLeft').textContent=aliveCount();$('stMoves').textContent=moves}
+function updTime(){const s=Math.max(0,((Date.now()-startTime)/1000)|0);
+ $('stTime').textContent=String((s/60)|0).padStart(2,'0')+':'+String(s%60).padStart(2,'0')}
+let toastId=null;
+function toast(msg){const t=$('toast');t.textContent=msg;t.style.opacity=1;
+ clearTimeout(toastId);toastId=setTimeout(()=>t.style.opacity=0,1800)}
+
+/* ========= 操作 ========= */
+board.addEventListener('click',e=>{
+ const el=e.target.closest('.tile');
+ if(!el||lock||over)return;
+ const t=tiles[+el.dataset.id];
+ if(!t.alive)return;
+ if(!isFreeTile(t)){el.classList.remove('shake');void el.offsetWidth;el.classList.add('shake');sfx.err();return}
+ if(selected===t){selected=null;render();return}
+ if(!selected){selected=t;sfx.click();render();return}
+ if(groupOf(selected.face)===groupOf(t.face))doMatch(selected,t,{});
+ else{selected=t;sfx.click();render()}
+});
+function doMatch(a,b,opt){
+ a.alive=false;b.alive=false;selected=null;undoStack.push([a.id,b.id]);score+=10;moves++;
+ if(!opt.instant&&a.el&&b.el){
+  lock=true;a.el.classList.add('bye');b.el.classList.add('bye');sfx.match();
+  setTimeout(()=>{lock=false;render();updStats();checkEnd()},250);
+ }else{render();updStats();checkEnd()}
+}
+function undo(){
+ if(lock||over||!undoStack.length)return;
+ const[idA,idB]=undoStack.pop();
+ tiles[idA].alive=true;tiles[idB].alive=true;
+ score=Math.max(0,score-10);moves=Math.max(0,moves-1);
+ selected=null;render();updStats();sfx.click();hideOverlay();checkEnd(true);
+}
+function hint(){
+ if(lock||over)return;
+ const p=findAnyPair();
+ if(!p){toast('沒有可消除的配對，試試洗牌');return}
+ score=Math.max(0,score-10);updStats();
+ render();
+ p.forEach(t=>{t.el.classList.add('hint');setTimeout(()=>t.el&&t.el.classList.remove('hint'),2300)});
+ sfx.click();
+}
+function checkEnd(quiet){
+ if(aliveCount()===0){
+  over=true;clearInterval(timerId);const sec=((Date.now()-startTime)/1000)|0;
+  sfx.win();
+  let best='';try{
+   const b=JSON.parse(localStorage.getItem('mj_best')||'null');
+   if(!b||sec<b.time){localStorage.setItem('mj_best',JSON.stringify({time:sec,score}));best='（新紀錄！）'}
+  }catch(e){}
+  showOverlay('🎉 恭喜過關！',`用時 ${String((sec/60)|0).padStart(2,'0')}:${String(sec%60).padStart(2,'0')} · 分數 ${score} ${best}`,[['再玩一局',newGame]]);
+ }else if(!quiet&&!findAnyPair()){
+  showOverlay('😖 山窮水盡','沒有可以消除的配對了！',[
+   ['洗牌重整',()=>{hideOverlay();doShuffle()}],
+   ['復原一步',()=>{hideOverlay();undo()}],
+   ['新局',newGame]]);
+ }
+}
+function showOverlay(title,text,btns){
+ $('ovTitle').textContent=title;$('ovText').textContent=text;
+ const box=$('ovBtns');box.innerHTML='';
+ btns.forEach(([label,fn])=>{const b=document.createElement('button');b.textContent=label;b.onclick=fn;box.appendChild(b)});
+ $('overlay').classList.add('show');
+}
+function hideOverlay(){$('overlay').classList.remove('show')}
+$('btnNew').onclick=newGame;
+$('btnHint').onclick=hint;
+$('btnUndo').onclick=undo;
+$('btnShuffle').onclick=doShuffle;
+$('btnSound').onclick=e=>{soundOn=!soundOn;e.target.textContent=soundOn?'🔊':'🔇'};
+
+/* 暴露洗牌給之後廣告回調使用 */
+window.restartGame = doShuffle;
+window.__MJ={
+ solveWithWinOrder(){
+  let n=0,skipped=0;
+  for(const pair of curOrder){
+   const A=tiles[pair[0]],B=tiles[pair[1]];
+   if(!A.alive&&!B.alive){skipped++;continue}
+   if(!A.alive||!B.alive)return{n,ok:false,err:'order pair half-removed'};
+   if(!isFreeTile(A)||!isFreeTile(B))return{n,ok:false,err:'order tile blocked',
+    info:[A.x,A.y,A.z,B.x,B.y,B.z]};
+   doMatch(A,B,{instant:true});n++;
+  }
+  let guard=300;
+  while(aliveCount()>0&&guard--){
+   const p=findAnyPair();if(!p)return{n,ok:false,err:'stuck'};doMatch(p[0],p[1],{instant:true});n++;
+  }
+  return{n,ok:aliveCount()===0,skipped,win:over};
+ },
+ greedyMoves(n){let c=0;for(let i=0;i<n;i++){const p=findAnyPair();if(!p)break;doMatch(p[0],p[1],{instant:true});c++}return c},
+ doShuffle,
+ info:()=>({alive:aliveCount(),free:freeList().length,score,moves,over})
+};
+newGame();
+</script>
 </body>
 </html>
